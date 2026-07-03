@@ -184,7 +184,9 @@ class InboxActivity : AppCompatActivity() {
     }
 
     private fun refreshInbox() {
-        loadingSpinner.visibility = android.view.View.VISIBLE
+        if (allEmails.isEmpty()) {
+            loadingSpinner.visibility = android.view.View.VISIBLE
+        }
         ioExecutor.execute {
             try {
                 val emails = mailGateway.fetchEmails(currentFolder)
