@@ -40,7 +40,6 @@ class PushPairingActivity : AppCompatActivity() {
     private lateinit var btnScanQr: Button
     private lateinit var btnSaveServerUrl: Button
     private lateinit var serverUrlInput: EditText
-    private var serverUrlInitialized = false
 
     private lateinit var statusText: TextView
     private lateinit var subscriberText: TextView
@@ -122,9 +121,8 @@ class PushPairingActivity : AppCompatActivity() {
     }
 
     private fun render(state: PushHomeUiState) {
-        if (!serverUrlInitialized) {
+        if (!serverUrlInput.isFocused && serverUrlInput.text.toString() != state.serverUrlSetting.orEmpty()) {
             serverUrlInput.setText(state.serverUrlSetting.orEmpty())
-            serverUrlInitialized = true
         }
 
         statusText.text = getString(
