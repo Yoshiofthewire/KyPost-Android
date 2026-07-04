@@ -58,7 +58,6 @@
     <string name="keyword_settings_empty">No IMAP keywords discovered yet. Open Inbox to sync first.</string>
 
     <string name="themes_title">Themes</string>
-    <string name="themes_intro">Choose a theme. Colors are based on the palette set from theme.ts.</string>
 
     <string name="compose_subject">Subject</string>
     <string name="compose_body_hint">Type your message here...</string>
