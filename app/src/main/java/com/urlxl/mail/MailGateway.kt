@@ -124,8 +124,6 @@ class MailGateway(private val config: MailAccountConfig) {
         }
     }
 
-    fun fetchInboxEmails(limit: Int = DEFAULT_FETCH_LIMIT): List<Email> = fetchEmails(config.folderName, limit)
-
     fun fetchEmails(folderName: String, limit: Int = DEFAULT_FETCH_LIMIT): List<Email> {
         if (!isConfigured()) {
             lastError = "Mail account is not configured"
@@ -439,20 +437,6 @@ class MailGateway(private val config: MailAccountConfig) {
         fun fromSettings(context: Context): MailGateway {
             val settings = MailSettings(context)
             return MailGateway(settings.getConfig())
-        }
-
-        fun fromBuildConfig(): MailGateway {
-            return MailGateway(
-                MailAccountConfig(
-                    imapHost = BuildConfig.MAIL_IMAP_HOST,
-                    imapPort = BuildConfig.MAIL_IMAP_PORT,
-                    smtpHost = BuildConfig.MAIL_SMTP_HOST,
-                    smtpPort = BuildConfig.MAIL_SMTP_PORT,
-                    username = BuildConfig.MAIL_USERNAME,
-                    password = BuildConfig.MAIL_PASSWORD,
-                    folderName = BuildConfig.MAIL_IMAP_FOLDER,
-                ),
-            )
         }
     }
 }

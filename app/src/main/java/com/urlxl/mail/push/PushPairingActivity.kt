@@ -130,8 +130,8 @@ class PushPairingActivity : AppCompatActivity() {
             syncErrorText.text = "Sync error: ${state.syncError}"
         }
 
-        latestSenderText.text = "Sender: ${state.latestPayload?.senderName?.ifBlank { "New email" } ?: "-"}"
-        latestSubjectText.text = "Subject: ${state.latestPayload?.emailSubject?.ifBlank { "You received a new labeled email" } ?: "-"}"
+        latestSenderText.text = "Sender: ${state.latestPayload?.let { PushPayloadParser.title(it) } ?: "-"}"
+        latestSubjectText.text = "Subject: ${state.latestPayload?.let { PushPayloadParser.body(it) } ?: "-"}"
         latestKeywordsText.text = "Keywords: ${state.latestPayload?.keywords?.joinToString() ?: "-"}"
 
         historyAdapter.submit(state.history)
@@ -201,8 +201,8 @@ class PushPairingActivity : AppCompatActivity() {
             val subject = view.findViewById<TextView>(R.id.pushHistorySubject)
             val date = view.findViewById<TextView>(R.id.pushHistoryDate)
 
-            title.text = payload.senderName.ifBlank { "New email" }
-            subject.text = payload.emailSubject.ifBlank { "You received a new labeled email" }
+            title.text = PushPayloadParser.title(payload)
+            subject.text = PushPayloadParser.body(payload)
             date.text = dateFormat.format(Date(payload.receivedAtEpochMs))
 
             val panelColor = android.graphics.Color.parseColor(palette.panel)

@@ -2,19 +2,18 @@ package com.urlxl.mail.push
 
 import android.os.Build
 import com.urlxl.mail.BuildConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.http.Body
-import retrofit2.http.POST
-import retrofit2.http.Url
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
-private const val REGISTRATION_PLACEHOLDER_BASE_URL = "https://native-register.invalid/"
+private val JSON_MEDIA_TYPE = "application/json".toMediaType()
 
 @Serializable
 data class NativeRegistrationRequest(
@@ -50,11 +49,6 @@ object NativeRegistrationRequestMapper {
     }
 }
 
-private interface NativeRegistrationApi {
-    @POST
-    suspend fun register(@Url url: String, @Body body: NativeRegistrationRequest): Response<NativeRegistrationResponse>
-}
-
 sealed class NativeRegistrationResult {
     data class Success(val syncedAtEpochMs: Long, val deviceId: String?) : NativeRegistrationResult()
     data class Error(val message: String, val expiredPairingToken: Boolean = false) : NativeRegistrationResult()
@@ -64,15 +58,6 @@ class NativeRegistrationClient(
     private val json: Json = Json { ignoreUnknownKeys = true },
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder().build(),
 ) {
-    private val api: NativeRegistrationApi by lazy {
-        Retrofit.Builder()
-            .baseUrl(REGISTRATION_PLACEHOLDER_BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
-            .create(NativeRegistrationApi::class.java)
-    }
-
     suspend fun register(
         pairing: PairingData,
         token: String,
@@ -81,14 +66,24 @@ class NativeRegistrationClient(
         if (token.isBlank()) return NativeRegistrationResult.Error("FCM token is empty")
 
         val request = NativeRegistrationRequestMapper.map(pairing = pairing, token = token)
+        val httpRequest = Request.Builder()
+            .url(pairing.registrationUrl)
+            .post(json.encodeToString(request).toRequestBody(JSON_MEDIA_TYPE))
+            .build()
 
-        val result = runCatching { api.register(pairing.registrationUrl, request) }
-        val response = result.getOrNull()
+        val result = runCatching {
+            withContext(Dispatchers.IO) {
+                okHttpClient.newCall(httpRequest).execute().use { response ->
+                    response.code to response.body?.string().orEmpty()
+                }
+            }
+        }
+        val (code, rawBody) = result.getOrNull()
             ?: return NativeRegistrationResult.Error(result.exceptionOrNull()?.message ?: "Failed to register device")
 
-        return when (response.code()) {
+        return when (code) {
             200 -> {
-                val body = response.body()
+                val body = runCatching { json.decodeFromString<NativeRegistrationResponse>(rawBody) }.getOrNull()
                 if (body?.ok == true && body.synced) {
                     NativeRegistrationResult.Success(syncedAtEpochMs = nowEpochMs, deviceId = body.deviceId)
                 } else {
@@ -101,7 +96,7 @@ class NativeRegistrationClient(
                 expiredPairingToken = true,
             )
             503 -> NativeRegistrationResult.Error("Pairing not configured on backend")
-            else -> NativeRegistrationResult.Error("Failed to register device (${response.code()})")
+            else -> NativeRegistrationResult.Error("Failed to register device ($code)")
         }
     }
 }

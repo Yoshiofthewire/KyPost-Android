@@ -259,6 +259,7 @@ class InboxActivity : AppCompatActivity() {
         menu?.add(0, MENU_SETTINGS, 1, R.string.menu_settings)
         menu?.add(0, MENU_THEMES, 2, R.string.menu_themes)
         menu?.add(0, MENU_PUSH_PAIRING, 3, R.string.menu_push_pairing)
+        menu?.add(0, MENU_ABOUT, 4, R.string.menu_about)
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -278,6 +279,10 @@ class InboxActivity : AppCompatActivity() {
             }
             MENU_PUSH_PAIRING -> {
                 startActivity(Intent(this, com.urlxl.mail.push.PushPairingActivity::class.java))
+                true
+            }
+            MENU_ABOUT -> {
+                showAboutDialog(this)
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -418,6 +423,7 @@ class InboxActivity : AppCompatActivity() {
         private const val MENU_SETTINGS = 1
         private const val MENU_THEMES = 2
         private const val MENU_PUSH_PAIRING = 3
+        private const val MENU_ABOUT = 4
         private val SWIPE_ARCHIVE_COLOR = Color.parseColor("#2E7D32")
         private val SWIPE_DELETE_COLOR = Color.parseColor("#C62828")
     }

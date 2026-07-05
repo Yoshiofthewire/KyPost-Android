@@ -21,7 +21,7 @@ class PushSyncCoordinator(
     }
 
     suspend fun syncCurrentPairingToken(): NativeRegistrationResult {
-        val state = repository.stateSnapshot()
+        val state = repository.state.first()
         val pairing = state.pairing ?: return NativeRegistrationResult.Error("Device is not paired")
 
         val token = fetchFcmTokenOrNull()
@@ -34,7 +34,7 @@ class PushSyncCoordinator(
     }
 
     suspend fun syncProvidedToken(token: String): NativeRegistrationResult {
-        val state = repository.stateSnapshot()
+        val state = repository.state.first()
         val pairing = state.pairing ?: return NativeRegistrationResult.Error("Device is not paired")
         return syncAndPersist(pairing = pairing, token = token)
     }
@@ -54,8 +54,4 @@ class PushSyncCoordinator(
     private suspend fun fetchFcmTokenOrNull(): String? {
         return runCatching { FirebaseMessaging.getInstance().token.await() }.getOrNull()
     }
-}
-
-private suspend fun PushRepository.stateSnapshot(): PushState {
-    return state.first()
 }

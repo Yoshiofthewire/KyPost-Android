@@ -270,7 +270,8 @@ private fun styledTitle(title: String, color: Int): SpannableString {
     }
 }
 
-private fun readableOn(backgroundColor: Int): Int {
+/** Returns black or white — whichever reads more legibly on the given background color. */
+internal fun readableOn(backgroundColor: Int): Int {
     val darkness = 1 - (0.299 * Color.red(backgroundColor) + 0.587 * Color.green(backgroundColor) + 0.114 * Color.blue(backgroundColor)) / 255
     return if (darkness >= 0.45) Color.WHITE else Color.BLACK
 }

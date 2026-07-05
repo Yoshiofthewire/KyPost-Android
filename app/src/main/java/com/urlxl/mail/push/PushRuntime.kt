@@ -4,8 +4,10 @@ import android.content.Context
 
 class PushGraph(context: Context) {
     val repository = PushRepository(context)
-    val registrationClient = NativeRegistrationClient()
-    val syncCoordinator = PushSyncCoordinator(repository = repository, registrationClient = registrationClient)
+    val syncCoordinator = PushSyncCoordinator(
+        repository = repository,
+        registrationClient = NativeRegistrationClient(),
+    )
 }
 
 object PushRuntime {

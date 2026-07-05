@@ -12,6 +12,11 @@
     <string name="menu_keywords">Keywords</string>
     <string name="menu_themes">Themes</string>
     <string name="menu_push_pairing">Push notifications</string>
+    <string name="menu_about">About</string>
+    <string name="about_title">llama Mail</string>
+    <string name="about_version_badge">v%1$s</string>
+    <string name="about_body">Developed by Busnes Games\n©%1$s - Licensed Under the GPL 2</string>
+    <string name="about_license_label">GNU General Public License v2</string>
 
     <string name="imap_settings">IMAP Settings</string>
     <string name="imap_host_label">IMAP Host</string>
