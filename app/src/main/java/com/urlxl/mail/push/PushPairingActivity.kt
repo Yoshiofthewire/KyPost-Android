@@ -116,9 +116,15 @@ class PushPairingActivity : AppCompatActivity() {
     }
 
     private fun render(state: PushHomeUiState) {
-        statusText.text = getString(
+        val baseStatus = getString(
             if (state.pairing == null) R.string.push_pairing_status_not_paired else R.string.push_pairing_status_paired,
         )
+        statusText.text = if (state.pairing == null) {
+            baseStatus
+        } else {
+            val modeLabel = if (state.deliveryMode == DeliveryMode.PULL) "App Pull" else "Relay Push"
+            "$baseStatus • $modeLabel"
+        }
         subscriberText.text = "Subscriber ID: ${state.pairing?.subscriberId?.let { maskTail(it, 6) } ?: "-"}"
         deviceIdText.text = "Device ID: ${state.pairing?.deviceId ?: "-"}"
         lastSyncText.text = "Last token sync: ${state.lastTokenSyncAtEpochMs?.let { dateFormat.format(Date(it)) } ?: "-"}"

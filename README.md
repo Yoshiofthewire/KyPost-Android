@@ -11,6 +11,15 @@ This app includes a production push client flow for **Llama Labels notifications
 - Only marks the device as paired once the registration call actually succeeds (`ok:true`/`synced:true`) — scanning a QR alone does not pair the device.
 - Handles FCM data payload keys: `messageId`, `senderName`, `emailSubject`, `Keywords`.
 - Shows system notifications and keeps an in-app notification history.
+- Supports a per-user **delivery mode** (`push` | `pull`) chosen on the web Notifications page. In `pull` mode the server sends nothing to FCM; the app polls the server directly (see below).
+
+## App Pull mode (FCM/relay bypass)
+
+- The native registration response now also returns `deliveryMode` (`push`|`pull`) and `pullEndpoint`; both are persisted. When `pullEndpoint` is absent it is derived as `{srv}/api/notifications/native/pull`.
+- When the mode is `pull`, the app polls `GET {pullEndpoint}?sub=&hash=&after=<cursor>` — auth is the query params only (the same subscriber HMAC `hash`, URL-encoded), no session/bearer. FCM stays registered but is not the source of truth.
+- Each returned notification is rendered through the same dispatcher as an FCM data message, so the tap behavior is identical. De-duplication is by the strictly-increasing `seq`; a durable per-subscriber `lastCursor` is advanced (to `max(lastCursor, response.cursor)`) only after notifications are handed off, so a crash re-fetches rather than drops.
+- The `deliveryMode` in both the register and pull responses is authoritative: flipping to `push` on the web stops polling; flipping to `pull` resumes it. It is re-read on every app foreground.
+- **Cadence tradeoff:** pull mode has no push to wake the app, so background delivery uses WorkManager periodic work at the platform minimum (15 min) plus an immediate pull on app foreground and after (re)pairing. Near-real-time background delivery would require a foreground service with a short poll loop and a persistent notification — intentionally not the default. 400/401/503 and network errors back off without tight-looping.
 
 ## Firebase setup
 

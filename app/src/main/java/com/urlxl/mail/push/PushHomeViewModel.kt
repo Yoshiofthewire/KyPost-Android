@@ -32,6 +32,7 @@ class PushHomeViewModel(application: Application) : AndroidViewModel(application
             syncError = repo.syncError,
             latestPayload = repo.latestPayload,
             history = repo.history,
+            deliveryMode = repo.deliveryMode,
             isWorking = working,
             localMessage = local,
         )
@@ -46,6 +47,8 @@ class PushHomeViewModel(application: Application) : AndroidViewModel(application
             val state = graph.repository.state.first()
             if (state.pairing != null) {
                 graph.syncCoordinator.syncCurrentPairingToken()
+                // Re-read delivery mode & drain any queued pull notifications on open.
+                graph.pullCoordinator.pullNowAsync()
             }
         }
     }
@@ -76,6 +79,10 @@ class PushHomeViewModel(application: Application) : AndroidViewModel(application
                         is NativeRegistrationEndpointResolver.Resolution.Resolved -> {
                             val pending = parsed.pairing.copy(registrationUrl = resolution.registrationUrl)
                             val result = graph.syncCoordinator.attemptPairing(pending)
+                            if (result is NativeRegistrationResult.Success) {
+                                // If the server put this user in pull mode, start fetching immediately.
+                                graph.pullCoordinator.pullNowAsync()
+                            }
                             localMessage.value = when (result) {
                                 is NativeRegistrationResult.Success -> "Device paired and token synced"
                                 is NativeRegistrationResult.Error -> {
@@ -104,6 +111,9 @@ class PushHomeViewModel(application: Application) : AndroidViewModel(application
         scope.launch {
             isWorking.value = true
             val result = graph.syncCoordinator.syncCurrentPairingToken()
+            if (result is NativeRegistrationResult.Success) {
+                graph.pullCoordinator.pullNowAsync()
+            }
             localMessage.value = when (result) {
                 is NativeRegistrationResult.Success -> "Token synced"
                 is NativeRegistrationResult.Error -> {
@@ -127,6 +137,7 @@ data class PushHomeUiState(
     val syncError: String? = null,
     val latestPayload: PushPayload? = null,
     val history: List<PushPayload> = emptyList(),
+    val deliveryMode: DeliveryMode = DeliveryMode.PUSH,
     val isWorking: Boolean = false,
     val localMessage: String? = null,
 )

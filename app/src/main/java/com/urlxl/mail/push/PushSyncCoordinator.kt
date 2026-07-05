@@ -15,6 +15,7 @@ class PushSyncCoordinator(
         val result = registrationClient.register(pairing = pairing, token = token)
         if (result is NativeRegistrationResult.Success) {
             repository.savePairing(pairing.copy(deviceId = result.deviceId ?: pairing.deviceId))
+            persistDelivery(pairing, result)
             repository.updateSyncState(lastSyncAtEpochMs = result.syncedAtEpochMs, syncError = null)
         }
         return result
@@ -44,11 +45,17 @@ class PushSyncCoordinator(
         when (result) {
             is NativeRegistrationResult.Success -> {
                 repository.savePairing(pairing.copy(deviceId = result.deviceId ?: pairing.deviceId))
+                persistDelivery(pairing, result)
                 repository.updateSyncState(lastSyncAtEpochMs = result.syncedAtEpochMs, syncError = null)
             }
             is NativeRegistrationResult.Error -> repository.updateSyncState(lastSyncAtEpochMs = null, syncError = result.message)
         }
         return result
+    }
+
+    private suspend fun persistDelivery(pairing: PairingData, result: NativeRegistrationResult.Success) {
+        val endpoint = resolvePullEndpoint(pairing.serverUrl, result.pullEndpoint)
+        repository.updateDelivery(result.deliveryMode, endpoint)
     }
 
     private suspend fun fetchFcmTokenOrNull(): String? {

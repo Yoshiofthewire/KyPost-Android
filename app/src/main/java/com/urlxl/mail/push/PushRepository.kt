@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.IOException
@@ -19,6 +20,10 @@ private val Context.pushDataStore by preferencesDataStore(name = "push_state")
 private val KEY_LAST_SYNC_AT = longPreferencesKey("sync_last_at")
 private val KEY_SYNC_ERROR = stringPreferencesKey("sync_error")
 private val KEY_HISTORY_JSON = stringPreferencesKey("history_json")
+private val KEY_DELIVERY_MODE = stringPreferencesKey("delivery_mode")
+private val KEY_PULL_ENDPOINT = stringPreferencesKey("pull_endpoint")
+private val KEY_PULL_CURSOR = longPreferencesKey("pull_cursor")
+private val KEY_PULL_CURSOR_SUB = stringPreferencesKey("pull_cursor_sub")
 
 private const val HISTORY_LIMIT = 30
 
@@ -45,6 +50,39 @@ class PushRepository(private val context: Context) {
         context.pushDataStore.edit { prefs ->
             prefs.remove(KEY_LAST_SYNC_AT)
             prefs.remove(KEY_SYNC_ERROR)
+            prefs.remove(KEY_DELIVERY_MODE)
+            prefs.remove(KEY_PULL_ENDPOINT)
+            prefs.remove(KEY_PULL_CURSOR)
+            prefs.remove(KEY_PULL_CURSOR_SUB)
+        }
+    }
+
+    /** Persist the authoritative delivery mode and (derived or server-provided) pull endpoint. */
+    suspend fun updateDelivery(mode: DeliveryMode, pullEndpoint: String?) {
+        context.pushDataStore.edit { prefs ->
+            prefs[KEY_DELIVERY_MODE] = mode.wire
+            if (pullEndpoint.isNullOrBlank()) prefs.remove(KEY_PULL_ENDPOINT) else prefs[KEY_PULL_ENDPOINT] = pullEndpoint
+        }
+    }
+
+    /**
+     * The durable pull cursor for [subscriberId], defaulting to 0. Scoped to the subscriber so
+     * re-pairing as a different subscriber starts from a clean cursor rather than skipping their
+     * backlog.
+     */
+    suspend fun pullCursor(subscriberId: String): Long {
+        val prefs = context.pushDataStore.data
+            .catch { ex -> if (ex is IOException) emit(emptyPreferences()) else throw ex }
+            .first()
+        return if (prefs[KEY_PULL_CURSOR_SUB] == subscriberId) prefs[KEY_PULL_CURSOR] ?: 0L else 0L
+    }
+
+    /** Advance the cursor to max(existing, [cursor]); resets when the subscriber changes. */
+    suspend fun advancePullCursor(subscriberId: String, cursor: Long) {
+        context.pushDataStore.edit { prefs ->
+            val current = if (prefs[KEY_PULL_CURSOR_SUB] == subscriberId) prefs[KEY_PULL_CURSOR] ?: 0L else 0L
+            prefs[KEY_PULL_CURSOR_SUB] = subscriberId
+            prefs[KEY_PULL_CURSOR] = maxOf(current, cursor)
         }
     }
 
@@ -67,12 +105,16 @@ class PushRepository(private val context: Context) {
 
     private fun toState(prefs: Preferences, pairing: PairingData?): PushState {
         val history = decodeHistory(prefs[KEY_HISTORY_JSON])
+        val pullEndpoint = prefs[KEY_PULL_ENDPOINT]
+            ?: pairing?.serverUrl?.let { resolvePullEndpoint(it, null) }
         return PushState(
             pairing = pairing,
             lastTokenSyncAtEpochMs = prefs[KEY_LAST_SYNC_AT],
             syncError = prefs[KEY_SYNC_ERROR],
             history = history,
             latestPayload = history.firstOrNull(),
+            deliveryMode = DeliveryMode.fromWire(prefs[KEY_DELIVERY_MODE]),
+            pullEndpoint = pullEndpoint,
         )
     }
 
@@ -88,4 +130,6 @@ data class PushState(
     val syncError: String?,
     val latestPayload: PushPayload?,
     val history: List<PushPayload>,
+    val deliveryMode: DeliveryMode = DeliveryMode.PUSH,
+    val pullEndpoint: String? = null,
 )

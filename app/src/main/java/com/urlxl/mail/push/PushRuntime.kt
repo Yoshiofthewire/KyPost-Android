@@ -3,7 +3,12 @@ package com.urlxl.mail.push
 import android.content.Context
 
 class PushGraph(context: Context) {
-    val repository = PushRepository(context)
+    private val appContext = context.applicationContext
+    val repository = PushRepository(appContext)
+    val pullCoordinator = PullSyncCoordinator(
+        appContext = appContext,
+        repository = repository,
+    )
     val syncCoordinator = PushSyncCoordinator(
         repository = repository,
         registrationClient = NativeRegistrationClient(),

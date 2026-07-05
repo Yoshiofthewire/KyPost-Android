@@ -21,6 +21,8 @@ kotlinxCoroutinesPlayServices = "1.10.2"
 playServicesCodeScanner = "16.1.0"
 googleServices = "4.4.4"
 securityCrypto = "1.1.0"
+workRuntime = "2.10.1"
+lifecycleProcess = "2.9.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -43,6 +45,8 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 play-services-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "playServicesCodeScanner" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntime" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
