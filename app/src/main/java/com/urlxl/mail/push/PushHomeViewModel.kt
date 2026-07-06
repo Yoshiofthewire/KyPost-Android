@@ -46,7 +46,13 @@ class PushHomeViewModel(application: Application) : AndroidViewModel(application
         scope.launch {
             val state = graph.repository.state.first()
             if (state.pairing != null) {
-                graph.syncCoordinator.syncCurrentPairingToken()
+                // The pairing token is single-use: once a sync has already succeeded, resending it
+                // on every app open only re-triggers the backend's "expired" rejection and scares
+                // the user, even though delivery is already configured and working. Only retry here
+                // to recover a pairing whose initial sync never completed.
+                if (state.lastTokenSyncAtEpochMs == null) {
+                    graph.syncCoordinator.syncCurrentPairingToken()
+                }
                 // Re-read delivery mode & drain any queued pull notifications on open.
                 graph.pullCoordinator.pullNowAsync()
             }

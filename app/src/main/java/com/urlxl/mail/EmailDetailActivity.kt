@@ -65,7 +65,7 @@ class EmailDetailActivity : AppCompatActivity() {
         )
         applyDetailChrome()
 
-        ioExecutor.execute { mailGateway.markAsRead(emailId, emailFolder) }
+        MailBackgroundExecutor.submit { mailGateway.markAsRead(emailId, emailFolder) }
 
         actionArchive.setOnClickListener {
             runMailActionAndFinish(getString(R.string.action_archive)) {
@@ -180,13 +180,9 @@ class EmailDetailActivity : AppCompatActivity() {
     }
 
     private fun runMailActionAndFinish(actionLabel: String, action: (MailGateway) -> Unit) {
-        ioExecutor.execute {
-            action(mailGateway)
-            runOnUiThread {
-                Toast.makeText(this, actionLabel, Toast.LENGTH_SHORT).show()
-                finish()
-            }
-        }
+        Toast.makeText(this, actionLabel, Toast.LENGTH_SHORT).show()
+        MailBackgroundExecutor.submit { action(mailGateway) }
+        finish()
     }
 
     private fun openCompose(to: String, subject: String, body: String) {

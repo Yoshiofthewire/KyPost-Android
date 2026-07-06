@@ -391,23 +391,21 @@ class InboxActivity : AppCompatActivity() {
                 val position = viewHolder.adapterPosition
                 if (position < 0 || position >= adapter.itemCount) return
                 val email = adapter.getEmailAt(position)
+                // Remove the row immediately and let the IMAP call finish on its own; waiting for
+                // the network round trip before updating the list is what made swipes feel slow.
                 when (direction) {
                     ItemTouchHelper.LEFT -> {
-                        ioExecutor.execute {
+                        allEmails = allEmails.filter { it.id != email.id }
+                        renderFilteredEmails()
+                        MailBackgroundExecutor.submit {
                             mailGateway.moveEmail(email.id, "[Gmail]/All Mail", currentFolder)
-                            runOnUiThread {
-                                allEmails = allEmails.filter { it.id != email.id }
-                                renderFilteredEmails()
-                            }
                         }
                     }
                     ItemTouchHelper.RIGHT -> {
-                        ioExecutor.execute {
+                        allEmails = allEmails.filter { it.id != email.id }
+                        renderFilteredEmails()
+                        MailBackgroundExecutor.submit {
                             mailGateway.deleteEmail(email.id, currentFolder)
-                            runOnUiThread {
-                                allEmails = allEmails.filter { it.id != email.id }
-                                renderFilteredEmails()
-                            }
                         }
                     }
                 }
