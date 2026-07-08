@@ -7,7 +7,8 @@ private const val FOLDER_MANAGEMENT_UNSUPPORTED = "Folder management not support
 /** Thin wrapper over the existing, unmodified [MailGateway] — no IMAP behavior changes here. */
 class ImapMailSource(private val gateway: MailGateway) : MailSource {
 
-    override fun fetchInbox(mailbox: String, limit: Int): MailOutcome<MailFetchResult> {
+    override fun fetchInbox(mailbox: String, limit: Int, forceFullResync: Boolean): MailOutcome<MailFetchResult> {
+        // No delta/cursor concept for direct IMAP mode — every fetch is already a live full fetch.
         val emails = gateway.fetchEmails(mailbox, limit)
         val error = gateway.lastError
         return if (error != null) {

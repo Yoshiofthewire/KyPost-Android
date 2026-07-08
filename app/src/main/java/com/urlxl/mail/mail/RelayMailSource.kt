@@ -4,6 +4,7 @@ import com.urlxl.mail.Email
 import com.urlxl.mail.push.PairingData
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.Call
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
@@ -13,6 +14,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 private val JSON_MEDIA_TYPE = "application/json".toMediaType()
 private const val NOT_CONFIGURED_PREFIX = "imap configuration is required"
+private const val FULL_RESYNC_SINCE = "0"
+private const val CHANGE_TYPE_UPDATED = "updated"
 
 /**
  * Talks to the six relay endpoints in Mobile_Mail_Relay.md. Blocking by design to match
@@ -21,26 +24,54 @@ private const val NOT_CONFIGURED_PREFIX = "imap configuration is required"
  */
 class RelayMailSource(
     private val pairingProvider: () -> PairingData?,
+    private val cursorProvider: MailCursorProvider,
     private val json: Json = Json { ignoreUnknownKeys = true },
-    private val okHttpClient: OkHttpClient = OkHttpClient.Builder().build(),
+    // Call.Factory (not the concrete OkHttpClient) so tests can inject a fake without a real
+    // network call or a MockWebServer dependency; OkHttpClient itself satisfies this interface.
+    private val callFactory: Call.Factory = OkHttpClient.Builder().build(),
 ) : MailSource {
 
-    override fun fetchInbox(mailbox: String, limit: Int): MailOutcome<MailFetchResult> {
+    override fun fetchInbox(mailbox: String, limit: Int, forceFullResync: Boolean): MailOutcome<MailFetchResult> {
         val pairing = pairingProvider() ?: return MailOutcome.Unauthorized("Device is not paired")
         val base = baseUrl(pairing, "/api/inbox") ?: return MailOutcome.BadRequest("Server URL is not valid")
+        val since = sinceValue(pairing.subscriberId, mailbox, forceFullResync)
         val url = base.newBuilder()
             .addQueryParameter("sub", pairing.subscriberId)
             .addQueryParameter("hash", pairing.subscriberHash)
             .addQueryParameter("limit", limit.toString())
             .addQueryParameter("mailbox", mailbox)
+            .addQueryParameter("since", since)
             .build()
         return execute(Request.Builder().url(url).get().build()) { code, body ->
             if (code != 200) return@execute mapErrorCode(code, body)
             val parsed = runCatching { json.decodeFromString<RelayInboxResponseDto>(body) }.getOrNull()
                 ?: return@execute MailOutcome.UpstreamFailure("Malformed inbox response")
-            val messages = parsed.byTab.flatMap { (tab, emails) -> emails.map { it.toUiEmail(tab) } }
-            MailOutcome.Success(MailFetchResult(tabs = parsed.tabs, messages = messages))
+            if (parsed.cursor.isNotBlank()) {
+                cursorProvider.saveCursor(pairing.subscriberId, mailbox, parsed.cursor)
+            }
+            if (since == FULL_RESYNC_SINCE) {
+                cursorProvider.recordFullResync(pairing.subscriberId, mailbox)
+            }
+            // changeType is the source of truth for new-vs-updated, never whether `since` was sent
+            // (Mobile_Mail_Relay.md Part 5) — read it straight off each entry, not derived state.
+            val entries = parsed.byTab.flatMap { (tab, emails) -> emails.map { it.toUiEmail(tab) to it.changeType } }
+            MailOutcome.Success(
+                MailFetchResult(
+                    tabs = parsed.tabs,
+                    messages = entries.map { it.first },
+                    isDelta = parsed.delta,
+                    updatedMessageIds = entries.filter { it.second == CHANGE_TYPE_UPDATED }.map { it.first.id }.toSet(),
+                    removedMessageIds = parsed.removed,
+                ),
+            )
         }
+    }
+
+    /** since=0 when forced (explicitly, or the daily self-heal cadence is due), or no cursor is
+     *  persisted yet (fresh pairing) — otherwise the persisted cursor (Mobile_Mail_Relay.md Part 5). */
+    private fun sinceValue(subscriberId: String, folder: String, forceFullResync: Boolean): String {
+        val forced = forceFullResync || cursorProvider.shouldForceFullResync(subscriberId, folder)
+        return if (forced) FULL_RESYNC_SINCE else cursorProvider.cursor(subscriberId, folder) ?: FULL_RESYNC_SINCE
     }
 
     override fun listFolders(parent: String?): MailOutcome<FolderListResult> {
@@ -156,7 +187,7 @@ class RelayMailSource(
 
     private fun <T> execute(request: Request, onResponse: (code: Int, body: String) -> MailOutcome<T>): MailOutcome<T> {
         val result = runCatching {
-            okHttpClient.newCall(request).execute().use { response ->
+            callFactory.newCall(request).execute().use { response ->
                 response.code to response.body?.string().orEmpty()
             }
         }
@@ -189,7 +220,7 @@ private fun RelayEmailDto.toUiEmail(tab: String): Email = Email(
     id = messageId,
     subject = subject,
     sender = sender,
-    preview = body.take(140),
+    preview = body.orEmpty().take(140),
     sentTo = sentTo,
     cc = cc,
     bcc = bcc,

@@ -32,7 +32,15 @@ fun MailOutcome<*>.userFacingMessage(): String? = when (this) {
     is MailOutcome.BadRequest -> message
 }
 
-data class MailFetchResult(val tabs: List<String>, val messages: List<Email>)
+data class MailFetchResult(
+    val tabs: List<String>,
+    val messages: List<Email>,
+    // The rest only matter when isDelta is true (Mobile_Mail_Relay.md Part 5 v2); a false/default
+    // value means `messages` is a full snapshot, exactly like the pre-delta response shape.
+    val isDelta: Boolean = false,
+    val updatedMessageIds: Set<String> = emptySet(),
+    val removedMessageIds: List<String> = emptyList(),
+)
 data class FolderInfo(val path: String, val deletable: Boolean)
 data class FolderListResult(val parent: String, val folders: List<FolderInfo>)
 
@@ -59,7 +67,9 @@ data class MailMessageBody(val html: String, val toAddresses: List<String>, val 
  * introduce coroutines into the mail path just for this abstraction.
  */
 interface MailSource {
-    fun fetchInbox(mailbox: String, limit: Int): MailOutcome<MailFetchResult>
+    /** [forceFullResync] requests since=0 (full re-fetch reported in delta shape) regardless of
+     *  any persisted cursor — the documented self-heal for a missed removal notification. */
+    fun fetchInbox(mailbox: String, limit: Int, forceFullResync: Boolean = false): MailOutcome<MailFetchResult>
     fun listFolders(parent: String?): MailOutcome<FolderListResult>
     fun createFolder(parent: String, name: String): MailOutcome<Unit>
     fun renameFolder(folder: String, name: String): MailOutcome<Unit>

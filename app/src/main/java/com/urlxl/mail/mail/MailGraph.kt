@@ -12,15 +12,17 @@ class MailGraph(context: Context) {
     private val appContext = context.applicationContext
     private val mailSettings = MailSettings(appContext)
     private val imapSource: MailSource = ImapMailSource(MailGateway.fromSettings(appContext))
+    private val mailCursorStore = MailCursorStore(appContext)
     private val relaySource: MailSource = RelayMailSource(
         // Non-suspend by design (MailSource is a blocking interface) but always fresh: reads the
         // same PushRepository-backed pairing state the push/pull path uses, never a stale copy.
         // Safe to block here — this only ever runs on a background executor thread, never main.
         pairingProvider = { runBlocking { PushRuntime.graph(appContext).repository.state.first().pairing } },
+        cursorProvider = mailCursorStore,
     )
 
     val repository = MailRepository(
-        db = DataRuntime.graph(appContext).database,
+        emailDao = DataRuntime.graph(appContext).database.emailDao(),
         imapSource = imapSource,
         relaySource = relaySource,
         mailSettings = mailSettings,

@@ -1,6 +1,27 @@
 package com.urlxl.mail.mail
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+
+/** Some deployments may emit `cursor` as a bare JSON number rather than a quoted string; decode
+ *  either shape into a plain string token so callers never need to care which one the server sent. */
+private object FlexibleCursorSerializer : KSerializer<String> {
+    override val descriptor = PrimitiveSerialDescriptor("Cursor", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: String) = encoder.encodeString(value)
+
+    override fun deserialize(decoder: Decoder): String {
+        val element = (decoder as JsonDecoder).decodeJsonElement()
+        return (element as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content.orEmpty()
+    }
+}
 
 /** DTOs matching Mobile_Mail_Relay.md's JSON exactly. */
 @Serializable
@@ -11,16 +32,25 @@ data class RelayEmailDto(
     val cc: String = "",
     val bcc: String = "",
     val subject: String = "",
-    val body: String = "",
+    // Null (not "") distinguishes an omitted body (delta "updated" entries) from a genuinely
+    // empty one, so callers know not to overwrite/clear a locally cached body.
+    val body: String? = null,
     val label: String = "",
     val status: String = "unread",
     val atUtc: String? = null,
+    // Only present when the parent response has "delta": true — "new" or "updated"
+    // (Mobile_Mail_Relay.md Part 5, delta/cursor sync v2).
+    val changeType: String? = null,
 )
 
 @Serializable
 data class RelayInboxResponseDto(
     val tabs: List<String> = emptyList(),
     val byTab: Map<String, List<RelayEmailDto>> = emptyMap(),
+    @Serializable(with = FlexibleCursorSerializer::class)
+    val cursor: String = "",
+    val delta: Boolean = false,
+    val removed: List<String> = emptyList(),
 )
 
 @Serializable

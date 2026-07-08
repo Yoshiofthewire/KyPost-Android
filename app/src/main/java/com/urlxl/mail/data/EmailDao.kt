@@ -30,6 +30,9 @@ interface EmailDao {
     @Query("SELECT body FROM emails WHERE messageId = :id")
     fun getBody(id: String): String?
 
+    @Query("SELECT * FROM emails WHERE messageId = :id")
+    fun getById(id: String): EmailEntity?
+
     @Query("DELETE FROM emails WHERE folder = :folder AND messageId NOT IN (:keepIds)")
     fun pruneStaleInFolder(folder: String, keepIds: List<String>)
 
