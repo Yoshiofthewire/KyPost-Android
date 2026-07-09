@@ -201,10 +201,25 @@ class InboxActivity : AppCompatActivity() {
     }
 
     private fun refreshInbox() {
-        if (allEmails.isEmpty()) {
+        // No emails held in memory yet (cold open, or a just-switched-to folder) — render the
+        // Room cache immediately so the list isn't empty while the network round trip is in
+        // flight, then let the fetch below overwrite it with fresh data.
+        val showCacheFirst = allEmails.isEmpty()
+        if (showCacheFirst) {
             loadingSpinner.visibility = android.view.View.VISIBLE
         }
         ioExecutor.execute {
+            if (showCacheFirst) {
+                val cached = mailRepository.cachedEmails(currentFolder)
+                if (cached.isNotEmpty()) {
+                    runOnUiThread {
+                        loadingSpinner.visibility = android.view.View.GONE
+                        allEmails = cached
+                        rebuildTabs(cached)
+                        renderFilteredEmails()
+                    }
+                }
+            }
             val outcome: MailOutcome<MailFetchResult> = mailRepository.refreshFolder(currentFolder)
             val emails = (outcome as? MailOutcome.Success)?.value?.messages
                 ?: mailRepository.cachedEmails(currentFolder)
