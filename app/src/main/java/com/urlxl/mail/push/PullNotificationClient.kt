@@ -1,5 +1,6 @@
 package com.urlxl.mail.push
 
+import com.urlxl.mail.executeSync
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -51,15 +52,9 @@ class PullNotificationClient(
 
         val httpRequest = Request.Builder().url(url).get().build()
 
-        val result = runCatching {
-            withContext(Dispatchers.IO) {
-                okHttpClient.newCall(httpRequest).execute().use { response ->
-                    Triple(
-                        response.code,
-                        response.body?.string().orEmpty(),
-                        response.header("Retry-After"),
-                    )
-                }
+        val result = withContext(Dispatchers.IO) {
+            okHttpClient.executeSync(httpRequest) { response ->
+                Triple(response.code, response.body?.string().orEmpty(), response.header("Retry-After"))
             }
         }
         val (code, rawBody, retryAfter) = result.getOrNull()

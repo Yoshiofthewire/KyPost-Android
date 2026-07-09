@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.urlxl.mail.ScopedValue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -30,6 +31,11 @@ private const val HISTORY_LIMIT = 30
 class PushRepository(private val context: Context) {
     private val json = Json { ignoreUnknownKeys = true }
     private val securePairingStore = SecurePairingStore(context)
+    private val pullCursorValue = ScopedValue(
+        dataStore = context.pushDataStore,
+        scopeKey = KEY_PULL_CURSOR_SUB,
+        valueKey = KEY_PULL_CURSOR,
+    )
 
     val state: Flow<PushState> = combine(
         context.pushDataStore.data.catch { ex ->
@@ -70,20 +76,11 @@ class PushRepository(private val context: Context) {
      * re-pairing as a different subscriber starts from a clean cursor rather than skipping their
      * backlog.
      */
-    suspend fun pullCursor(subscriberId: String): Long {
-        val prefs = context.pushDataStore.data
-            .catch { ex -> if (ex is IOException) emit(emptyPreferences()) else throw ex }
-            .first()
-        return if (prefs[KEY_PULL_CURSOR_SUB] == subscriberId) prefs[KEY_PULL_CURSOR] ?: 0L else 0L
-    }
+    suspend fun pullCursor(subscriberId: String): Long = pullCursorValue.get(subscriberId) ?: 0L
 
     /** Advance the cursor to max(existing, [cursor]); resets when the subscriber changes. */
     suspend fun advancePullCursor(subscriberId: String, cursor: Long) {
-        context.pushDataStore.edit { prefs ->
-            val current = if (prefs[KEY_PULL_CURSOR_SUB] == subscriberId) prefs[KEY_PULL_CURSOR] ?: 0L else 0L
-            prefs[KEY_PULL_CURSOR_SUB] = subscriberId
-            prefs[KEY_PULL_CURSOR] = maxOf(current, cursor)
-        }
+        pullCursorValue.update(subscriberId) { current -> maxOf(current ?: 0L, cursor) }
     }
 
     suspend fun updateSyncState(lastSyncAtEpochMs: Long?, syncError: String?) {

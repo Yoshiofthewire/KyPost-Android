@@ -1,6 +1,7 @@
 package com.urlxl.mail.mail
 
 import com.urlxl.mail.Email
+import com.urlxl.mail.executeSync
 import com.urlxl.mail.push.PairingData
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -186,11 +187,7 @@ class RelayMailSource(
     }
 
     private fun <T> execute(request: Request, onResponse: (code: Int, body: String) -> MailOutcome<T>): MailOutcome<T> {
-        val result = runCatching {
-            callFactory.newCall(request).execute().use { response ->
-                response.code to response.body?.string().orEmpty()
-            }
-        }
+        val result = callFactory.executeSync(request) { response -> response.code to response.body?.string().orEmpty() }
         val (code, body) = result.getOrNull()
             ?: return MailOutcome.UpstreamFailure(result.exceptionOrNull()?.message ?: "Network error")
         return onResponse(code, body)

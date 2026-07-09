@@ -1,15 +1,11 @@
 package com.urlxl.mail.mail
 
 import android.content.Context
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.first
+import com.urlxl.mail.ScopedValue
 import kotlinx.coroutines.runBlocking
-import java.io.IOException
 
 private val Context.mailSyncDataStore by preferencesDataStore(name = "mail_sync_state")
 
@@ -42,40 +38,32 @@ class MailCursorStore(
 ) : MailCursorProvider {
 
     override fun cursor(subscriberId: String, folder: String): String? = runBlocking {
-        val prefs = currentPrefs()
-        if (prefs[cursorSubKey(folder)] == subscriberId) prefs[cursorKey(folder)]?.takeIf { it.isNotBlank() } else null
+        cursorValue(folder).get(subscriberId)?.takeIf { it.isNotBlank() }
     }
 
     override fun saveCursor(subscriberId: String, folder: String, cursor: String) {
         if (cursor.isBlank()) return
-        runBlocking {
-            context.mailSyncDataStore.edit { prefs ->
-                prefs[cursorSubKey(folder)] = subscriberId
-                prefs[cursorKey(folder)] = cursor
-            }
-        }
+        runBlocking { cursorValue(folder).set(subscriberId, cursor) }
     }
 
     override fun shouldForceFullResync(subscriberId: String, folder: String): Boolean = runBlocking {
-        val prefs = currentPrefs()
-        val lastAt = if (prefs[cursorSubKey(folder)] == subscriberId) prefs[lastFullResyncKey(folder)] else null
+        val lastAt = resyncValue(folder).get(subscriberId)
         lastAt == null || (nowProvider() - lastAt) >= FULL_RESYNC_INTERVAL_MS
     }
 
     override fun recordFullResync(subscriberId: String, folder: String) {
-        runBlocking {
-            context.mailSyncDataStore.edit { prefs ->
-                prefs[cursorSubKey(folder)] = subscriberId
-                prefs[lastFullResyncKey(folder)] = nowProvider()
-            }
-        }
+        runBlocking { resyncValue(folder).set(subscriberId, nowProvider()) }
     }
 
-    private suspend fun currentPrefs() = context.mailSyncDataStore.data
-        .catch { ex -> if (ex is IOException) emit(emptyPreferences()) else throw ex }
-        .first()
+    private fun cursorValue(folder: String) = ScopedValue(
+        dataStore = context.mailSyncDataStore,
+        scopeKey = stringPreferencesKey("inbox_cursor_sub_$folder"),
+        valueKey = stringPreferencesKey("inbox_cursor_$folder"),
+    )
 
-    private fun cursorKey(folder: String) = stringPreferencesKey("inbox_cursor_$folder")
-    private fun cursorSubKey(folder: String) = stringPreferencesKey("inbox_cursor_sub_$folder")
-    private fun lastFullResyncKey(folder: String) = longPreferencesKey("inbox_last_full_resync_$folder")
+    private fun resyncValue(folder: String) = ScopedValue(
+        dataStore = context.mailSyncDataStore,
+        scopeKey = stringPreferencesKey("inbox_cursor_sub_$folder"),
+        valueKey = longPreferencesKey("inbox_last_full_resync_$folder"),
+    )
 }

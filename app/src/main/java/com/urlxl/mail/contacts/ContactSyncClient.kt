@@ -1,5 +1,6 @@
 package com.urlxl.mail.contacts
 
+import com.urlxl.mail.executeSync
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -58,12 +59,8 @@ class ContactSyncClient(
     private fun syncUrl(serverUrl: String) = "${serverUrl.trimEnd('/')}/api/contacts/sync".toHttpUrlOrNull()
 
     private suspend fun execute(request: Request): ContactSyncResult {
-        val result = runCatching {
-            withContext(Dispatchers.IO) {
-                okHttpClient.newCall(request).execute().use { response ->
-                    response.code to response.body?.string().orEmpty()
-                }
-            }
+        val result = withContext(Dispatchers.IO) {
+            okHttpClient.executeSync(request) { response -> response.code to response.body?.string().orEmpty() }
         }
         val (code, rawBody) = result.getOrNull()
             ?: return ContactSyncResult.Retryable(result.exceptionOrNull()?.message ?: "Network error during contact sync")

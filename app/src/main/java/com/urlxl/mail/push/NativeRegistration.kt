@@ -2,6 +2,7 @@ package com.urlxl.mail.push
 
 import android.os.Build
 import com.urlxl.mail.APP_VERSION
+import com.urlxl.mail.executeSync
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
@@ -90,12 +91,8 @@ class NativeRegistrationClient(
             .post(json.encodeToString(request).toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
-        val result = runCatching {
-            withContext(Dispatchers.IO) {
-                okHttpClient.newCall(httpRequest).execute().use { response ->
-                    response.code to response.body?.string().orEmpty()
-                }
-            }
+        val result = withContext(Dispatchers.IO) {
+            okHttpClient.executeSync(httpRequest) { response -> response.code to response.body?.string().orEmpty() }
         }
         val (code, rawBody) = result.getOrNull()
             ?: return NativeRegistrationResult.Error(result.exceptionOrNull()?.message ?: "Failed to register device")
