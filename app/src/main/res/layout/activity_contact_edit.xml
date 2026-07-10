@@ -11,6 +11,15 @@
         android:padding="16dp">
 
         <TextView
+            android:id="@+id/contactEditAvatar"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/contacts_name_label"

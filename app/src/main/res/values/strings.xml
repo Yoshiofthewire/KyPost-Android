@@ -75,6 +75,16 @@
     <string name="compose_body_hint">Type your message here...</string>
     <string name="compose_send">Send</string>
     <string name="cancel">Cancel</string>
+    <string name="compose_format_bold">B</string>
+    <string name="compose_format_italic">I</string>
+    <string name="compose_format_underline">U</string>
+    <string name="compose_format_bullets">• List</string>
+    <string name="compose_format_numbers">1. List</string>
+    <string name="compose_format_link">Link</string>
+    <string name="compose_link_dialog_title">Add link</string>
+    <string name="compose_link_dialog_url_hint">URL</string>
+    <string name="compose_link_dialog_text_hint">Display text (optional)</string>
+    <string name="compose_link_dialog_add">Add</string>
 
     <string name="push_pairing_title">Push Notifications</string>
     <string name="push_pairing_status_paired">Paired</string>

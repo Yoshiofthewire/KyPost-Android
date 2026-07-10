@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.urlxl.mail.R
+import com.urlxl.mail.applyEmptyStateBackground
 import com.urlxl.mail.applyThemeToActivity
 import com.urlxl.mail.applyThemedTitle
 import com.urlxl.mail.applyTopInsetWithHeader
@@ -67,6 +68,7 @@ class ContactsListActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         applyThemeToActivity(this)
+        applyEmptyStateBackground(this, emptyText)
         adapter.notifyDataSetChanged()
     }
 

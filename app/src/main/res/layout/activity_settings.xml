@@ -70,11 +70,10 @@
             android:orientation="vertical">
 
             <TextView
+                android:id="@+id/imapSettingsHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/imap_settings"
-                android:textSize="16sp"
-                android:textStyle="bold"
                 android:layout_marginTop="12dp"
                 android:layout_marginBottom="8dp" />
 
@@ -124,11 +123,10 @@
                 android:layout_marginBottom="16dp" />
 
             <TextView
+                android:id="@+id/smtpSettingsHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/smtp_settings"
-                android:textSize="16sp"
-                android:textStyle="bold"
                 android:layout_marginTop="12dp"
                 android:layout_marginBottom="8dp" />
 
@@ -163,11 +161,10 @@
                 android:layout_marginBottom="16dp" />
 
             <TextView
+                android:id="@+id/authSettingsHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/auth_settings"
-                android:textSize="16sp"
-                android:textStyle="bold"
                 android:layout_marginTop="12dp"
                 android:layout_marginBottom="8dp" />
 

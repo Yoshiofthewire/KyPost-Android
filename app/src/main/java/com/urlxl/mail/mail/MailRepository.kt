@@ -43,8 +43,12 @@ class MailRepository(
     }
 
     fun markRead(id: String, folder: String): MailOutcome<Unit> {
+        // Update the local cache regardless of whether the remote round trip succeeds — matches
+        // the swipe-to-archive/delete optimistic-update pattern (InboxActivity.setupSwipeGestures'
+        // "remove the row immediately" comment). Gating the local read state behind network
+        // success meant a flaky/offline connection left an opened email looking unread forever.
+        emailDao.updateStatus(id, "read")
         val outcome = activeSource().performAction(MailAction.READ, listOf(id), folder)
-        if (outcome is MailOutcome.Success) emailDao.updateStatus(id, "read")
         return outcome.toUnitOutcome()
     }
 

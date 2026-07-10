@@ -54,7 +54,7 @@ class ImapMailSource(private val gateway: MailGateway) : MailSource {
         MailOutcome.BadRequest("Drafts are not supported in Manual IMAP mode")
 
     override fun sendMail(draft: MailDraft): MailOutcome<MailSendOutcome> {
-        gateway.sendEmail(draft.to, draft.subject, draft.body)
+        gateway.sendEmail(draft.to, draft.subject, draft.body, isHtml = draft.mode == "html")
         return MailOutcome.Success(MailSendOutcome(sentSaved = true, warning = ""))
     }
 

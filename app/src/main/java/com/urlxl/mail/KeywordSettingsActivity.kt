@@ -38,6 +38,7 @@ class KeywordSettingsActivity : AppCompatActivity() {
                 text = getString(R.string.keyword_settings_empty)
                 textSize = 14f
             }
+            applyEmptyStateBackground(this, emptyView)
             container.addView(emptyView)
         } else {
             allKeywords.forEach { keyword ->

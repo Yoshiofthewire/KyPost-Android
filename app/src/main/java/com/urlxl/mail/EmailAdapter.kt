@@ -1,6 +1,7 @@
 package com.urlxl.mail
 
 import android.graphics.Color
+import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,6 +18,7 @@ class EmailAdapter(
     class EmailViewHolder(view: View, private val onEmailClick: ((Email) -> Unit)?) : RecyclerView.ViewHolder(view) {
         private val cardView: CardView = view as CardView
         private val contentLayout: LinearLayout = view.findViewById(R.id.emailItemContent)
+        private val unreadDot: View = view.findViewById(R.id.unreadDot)
         private val subjectTextView: TextView = view.findViewById(R.id.textViewSubject)
         private val senderTextView: TextView = view.findViewById(R.id.textViewSender)
         private val previewTextView: TextView = view.findViewById(R.id.textViewPreview)
@@ -29,7 +31,16 @@ class EmailAdapter(
             val panel = Color.parseColor(palette.panel)
             cardView.setCardBackgroundColor(panel)
             contentLayout.setBackgroundColor(panel)
-            subjectTextView.setTextColor(Color.parseColor(palette.inkStrong))
+
+            // Minor "unread" cue: a small accent dot plus a bolder, higher-contrast subject —
+            // the same signal used for keyword pills with unread mail (InboxActivity.styleKeywordChip).
+            val isUnread = email.status == "unread"
+            unreadDot.visibility = if (isUnread) View.VISIBLE else View.GONE
+            if (isUnread) {
+                unreadDot.background = unreadDotDrawable(itemView.context)
+            }
+            subjectTextView.setTypeface(subjectTextView.typeface, if (isUnread) Typeface.BOLD else Typeface.NORMAL)
+            subjectTextView.setTextColor(Color.parseColor(if (isUnread) palette.inkStrong else palette.ink))
             senderTextView.setTextColor(Color.parseColor(palette.ink))
             previewTextView.setTextColor(Color.parseColor(palette.ink))
 

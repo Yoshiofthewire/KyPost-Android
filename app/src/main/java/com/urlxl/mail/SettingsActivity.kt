@@ -60,6 +60,9 @@ class SettingsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         applyThemeToActivity(this)
+        applySectionEyebrowLabel(this, findViewById(R.id.imapSettingsHeader))
+        applySectionEyebrowLabel(this, findViewById(R.id.smtpSettingsHeader))
+        applySectionEyebrowLabel(this, findViewById(R.id.authSettingsHeader))
         applyPrimaryButtonTheme(this, btnSave)
         applyPrimaryButtonTheme(this, btnPairDevice)
         refreshPairingStatus()

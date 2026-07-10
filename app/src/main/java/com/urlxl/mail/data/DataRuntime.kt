@@ -2,6 +2,7 @@ package com.urlxl.mail.data
 
 import android.content.Context
 import androidx.room.Room
+import com.urlxl.mail.SingletonGraph
 
 class DataGraph(context: Context) {
     private val appContext = context.applicationContext
@@ -11,12 +12,7 @@ class DataGraph(context: Context) {
 /** Standalone singleton, kept independent of PushGraph/LlamaApp — mirrors how PushGraph itself
  *  stands alone rather than nesting inside another graph. */
 object DataRuntime {
-    @Volatile
-    private var graphInstance: DataGraph? = null
+    private val holder = SingletonGraph(::DataGraph)
 
-    fun graph(context: Context): DataGraph {
-        return graphInstance ?: synchronized(this) {
-            graphInstance ?: DataGraph(context.applicationContext).also { graphInstance = it }
-        }
-    }
+    fun graph(context: Context): DataGraph = holder.get(context)
 }

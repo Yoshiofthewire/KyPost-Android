@@ -1,6 +1,7 @@
 package com.urlxl.mail.contacts
 
 import android.content.Context
+import com.urlxl.mail.SingletonGraph
 import com.urlxl.mail.data.DataRuntime
 import com.urlxl.mail.push.PushRuntime
 import kotlinx.coroutines.flow.first
@@ -17,12 +18,7 @@ class ContactsGraph(context: Context) {
 }
 
 object ContactsRuntime {
-    @Volatile
-    private var graphInstance: ContactsGraph? = null
+    private val holder = SingletonGraph(::ContactsGraph)
 
-    fun graph(context: Context): ContactsGraph {
-        return graphInstance ?: synchronized(this) {
-            graphInstance ?: ContactsGraph(context.applicationContext).also { graphInstance = it }
-        }
-    }
+    fun graph(context: Context): ContactsGraph = holder.get(context)
 }

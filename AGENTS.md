@@ -2,6 +2,11 @@
 
 llama mail for Android is an Android email client with IMAP inbox read, SMTP send, and keyword-based inbox tabs driven by IMAP user flags. It also supports an alternate backend-relay connection mode (no IMAP/SMTP credentials on-device) and two-way contact sync against a self-hosted Llama Mail server, both authenticated via the existing native-push pairing (`sub`/`hash`). See [app/AGENTS.md](app/AGENTS.md).
 
+For any UI/theming/visual work, read [STYLE_GUIDE.md](STYLE_GUIDE.md) first — it defines
+how this app's look should align with the sibling web app (`../llama labels/frontend`)
+while staying native Android, and is binding for colors, shape, typography, and
+component patterns.
+
 # Ponytail, lazy senior dev mode
 
 Use the smallest correct change.

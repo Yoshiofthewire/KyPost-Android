@@ -22,6 +22,15 @@
         <item name="android:colorBackground">@color/app_chrome_surface</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
+        <!-- Space Grotesk is the default UI typeface app-wide, mirroring web's sans font var.
+             IBM Plex Mono is applied per-view where the guide calls for a monospace field. -->
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="fontFamily">@font/space_grotesk</item>
+    </style>
+
+    <!-- Bottom nav has no icons (bottom_nav_menu.xml is label-only), so its default text weight
+         reads faint against a full label-only bar; bump it for legibility. -->
+    <style name="TextAppearance.Llama.BottomNavLabel" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textStyle">bold</item>
     </style>
 </resources>

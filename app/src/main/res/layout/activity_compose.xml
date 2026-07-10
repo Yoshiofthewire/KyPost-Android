@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/composeRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -53,17 +54,93 @@
 
     </LinearLayout>
 
-    <EditText
-        android:id="@+id/composeBodyField"
+    <com.google.android.material.chip.ChipGroup
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        app:chipSpacingHorizontal="6dp">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/composeBold"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="@string/compose_format_bold"
+            android:textStyle="bold" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/composeItalic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="@string/compose_format_italic"
+            android:textStyle="italic" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/composeUnderline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="@string/compose_format_underline" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/composeBulletList"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="@string/compose_format_bullets" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/composeNumberList"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="@string/compose_format_numbers" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/composeLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checkable="true"
+            android:text="@string/compose_format_link" />
+
+    </com.google.android.material.chip.ChipGroup>
+
+    <!-- RichHtmlEditorWebView manages its own height to match its content (see its
+         updateWebViewHeight), so it needs a scrolling ancestor rather than a weighted fill: a
+         plain weighted container just gets shrunk down to the WebView's (empty) content height,
+         which is what made the body look like a single line. fillViewport stretches it to fill
+         the available space when content is short, and lets it grow/scroll once typed content
+         exceeds that — the exact pattern the library's own sample layout uses. -->
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="top"
-        android:hint="@string/compose_body_hint"
-        android:inputType="textMultiLine|textLongMessage"
         android:layout_marginBottom="12dp"
-        android:padding="8dp"
-        android:background="@drawable/edit_text_background" />
+        android:fillViewport="true">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/edit_text_background">
+
+            <com.infomaniak.lib.richhtmleditor.RichHtmlEditorWebView
+                android:id="@+id/composeBodyEditor"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <!-- The editor has no native hint mechanism (it's a WebView); this mirrors it via
+                 ComposeActivity toggling visibility off ComposeActivity's isEmptyFlow collector. -->
+            <TextView
+                android:id="@+id/composeBodyPlaceholder"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                android:text="@string/compose_body_hint"
+                android:textSize="16sp" />
+
+        </FrameLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <LinearLayout
         android:layout_width="match_parent"

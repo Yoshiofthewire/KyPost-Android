@@ -61,6 +61,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.2.0"))
     implementation("com.google.firebase:firebase-messaging")
     implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    implementation("com.github.infomaniak:android-rich-html-editor:1.1.0")
 
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)

@@ -1,6 +1,7 @@
 package com.urlxl.mail.push
 
 import android.content.Context
+import com.urlxl.mail.SingletonGraph
 
 class PushGraph(context: Context) {
     private val appContext = context.applicationContext
@@ -16,13 +17,8 @@ class PushGraph(context: Context) {
 }
 
 object PushRuntime {
-    @Volatile
-    private var graphInstance: PushGraph? = null
+    private val holder = SingletonGraph(::PushGraph)
 
-    fun graph(context: Context): PushGraph {
-        return graphInstance ?: synchronized(this) {
-            graphInstance ?: PushGraph(context.applicationContext).also { graphInstance = it }
-        }
-    }
+    fun graph(context: Context): PushGraph = holder.get(context)
 }
 

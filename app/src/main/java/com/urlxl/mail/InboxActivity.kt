@@ -4,7 +4,8 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,7 +20,8 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.tabs.TabLayout
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.urlxl.mail.mail.MailFetchResult
 import com.urlxl.mail.mail.MailOutcome
 import com.urlxl.mail.mail.MailRepository
@@ -31,7 +33,8 @@ import java.util.concurrent.Executors
 class InboxActivity : AppCompatActivity() {
 
     private lateinit var recyclerView: RecyclerView
-    private lateinit var keywordTabs: TabLayout
+    private lateinit var keywordChipScroll: View
+    private lateinit var keywordChips: ChipGroup
     private lateinit var bottomNav: BottomNavigationView
     private lateinit var loadingSpinner: ProgressBar
     private lateinit var inboxRoot: View
@@ -119,7 +122,8 @@ class InboxActivity : AppCompatActivity() {
         inboxRoot = findViewById(R.id.inboxRoot)
         inboxContent = findViewById(R.id.inboxContent)
         recyclerView = findViewById(R.id.recyclerViewInbox)
-        keywordTabs = findViewById(R.id.tabLayoutKeywords)
+        keywordChipScroll = findViewById(R.id.keywordChipScroll)
+        keywordChips = findViewById(R.id.keywordChipGroup)
         bottomNav = findViewById(R.id.bottomNavigation)
         loadingSpinner = findViewById(R.id.loadingSpinner)
     }
@@ -136,16 +140,18 @@ class InboxActivity : AppCompatActivity() {
         inboxContent.setBackgroundColor(bg)
         recyclerView.setBackgroundColor(bg)
 
-        // Render the keyword tabs as a single rounded pill bar rather than a hard-edged strip.
-        val density = resources.displayMetrics.density
-        keywordTabs.background = android.graphics.drawable.GradientDrawable().apply {
-            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-            cornerRadius = 18f * density
+        // Rounded panel bar behind the keyword pills, matching the app's 14dp card/panel radius.
+        keywordChipScroll.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 14f * resources.displayMetrics.density
             setColor(panel)
         }
-        keywordTabs.tabRippleColor = ColorStateList.valueOf(adjustAlpha(accent, 0.22f))
-        keywordTabs.setTabTextColors(ink, inkStrong)
-        keywordTabs.setSelectedTabIndicatorColor(accent)
+
+        // Re-style every existing chip in place so a theme switch recolors them even when
+        // rebuildTabs() short-circuits because the keyword set itself hasn't changed.
+        for (index in 0 until keywordChips.childCount) {
+            (keywordChips.getChildAt(index) as? Chip)?.let { styleKeywordChip(it) }
+        }
 
         bottomNav.backgroundTintList = null
         bottomNav.setBackgroundColor(panel)
@@ -181,18 +187,16 @@ class InboxActivity : AppCompatActivity() {
     }
 
     private fun setupTabs() {
-        keywordTabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                selectedTab = tab.text?.toString().orEmpty().ifBlank { KeywordTabs.ALL }
-                renderFilteredEmails()
-            }
-
-            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
-            override fun onTabReselected(tab: TabLayout.Tab) = Unit
-        })
+        keywordChips.setOnCheckedStateChangeListener { group, checkedIds ->
+            val checkedId = checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener
+            selectedTab = (group.findViewById<Chip>(checkedId))?.text?.toString().orEmpty().ifBlank { KeywordTabs.ALL }
+            renderFilteredEmails()
+        }
 
         rebuildTabs(emptyList())
     }
+
+    private fun styleKeywordChip(chip: Chip) = applyPillChipTheme(this, chip)
 
     private fun scheduleNextRefresh() {
         mainHandler.removeCallbacks(refreshRunnable)
@@ -238,28 +242,67 @@ class InboxActivity : AppCompatActivity() {
     }
 
     private fun rebuildTabs(emails: List<Email>) {
-        val rawTabs = KeywordTabs.buildTabs(emails)
-        val discoveredKeywords = rawTabs.drop(1).toSet()
-        keywordSettings.rememberKeywords(discoveredKeywords)
-        val visibleKeywords = keywordSettings.filterVisible(discoveredKeywords)
-        val tabs = listOf(KeywordTabs.ALL) + rawTabs.drop(1).filter { visibleKeywords.contains(it) }
+        // Always show every allowed (visible-in-Keyword-Settings) keyword the app has ever seen,
+        // not just ones present in the current email batch — a keyword tab shouldn't disappear
+        // just because its last matching email got archived/deleted/filtered to another folder.
+        val discoveredThisBatch = KeywordTabs.buildTabs(emails).drop(1).toSet()
+        keywordSettings.rememberKeywords(discoveredThisBatch)
+        val allowedKeywords = keywordSettings.filterVisible(keywordSettings.getAllKeywords()).sortedBy { it.lowercase() }
+        val tabs = listOf(KeywordTabs.ALL) + allowedKeywords
 
         val current = mutableListOf<String>()
-        for (index in 0 until keywordTabs.tabCount) {
-            current.add(keywordTabs.getTabAt(index)?.text?.toString().orEmpty())
+        for (index in 0 until keywordChips.childCount) {
+            current.add((keywordChips.getChildAt(index) as? Chip)?.text?.toString().orEmpty())
         }
-        if (tabs == current) {
-            return
+        if (tabs != current) {
+            keywordChips.removeAllViews()
+            if (!tabs.contains(selectedTab)) {
+                selectedTab = KeywordTabs.ALL
+            }
+            tabs.forEach { keyword ->
+                val chip = Chip(this).apply {
+                    text = keyword
+                    isCheckable = true
+                    isClickable = true
+                    isChecked = keyword == selectedTab
+                }
+                styleKeywordChip(chip)
+                keywordChips.addView(chip)
+            }
         }
 
-        keywordTabs.removeAllTabs()
-        tabs.forEach { keywordTabs.addTab(keywordTabs.newTab().setText(it)) }
-
-        if (!tabs.contains(selectedTab)) {
-            selectedTab = KeywordTabs.ALL
+        // Unread state (bold text + a small leading accent dot, matching the same cue used on
+        // inbox rows in EmailAdapter) tracks unread counts, which can change on a refresh even
+        // when the keyword set itself doesn't, so refresh it unconditionally rather than folding
+        // it into the rebuild check above.
+        val dotSizePx = (7 * resources.displayMetrics.density).toInt()
+        for (index in 0 until keywordChips.childCount) {
+            val chip = keywordChips.getChildAt(index) as? Chip ?: continue
+            val keyword = chip.text.toString()
+            val hasUnread = emails.any {
+                it.status == "unread" && (keyword == KeywordTabs.ALL || it.keywords.contains(keyword))
+            }
+            chip.setTypeface(chip.typeface, if (hasUnread) Typeface.BOLD else Typeface.NORMAL)
+            chip.isChipIconVisible = hasUnread
+            if (hasUnread) {
+                chip.chipIconSize = dotSizePx.toFloat()
+                chip.chipIcon = unreadDotDrawable(this, sizeDp = 7)
+                // A checked chip is already accent-filled, so an accent-colored dot would
+                // disappear into it — use the chip's own (contrasting) text color instead. This
+                // has to be a ColorStateList (like chipBackgroundColor/chipStrokeColor already
+                // are), not a one-off flat color: tapping a chip only toggles its checked state,
+                // it doesn't re-run this loop, so a flat color baked in at whatever checked state
+                // happened to be current here goes stale the moment the user selects a different
+                // pill — which is exactly what showed as a dot stuck black in dark themes.
+                val accent = Color.parseColor(getStoredThemePalette(this).accent)
+                val onAccent = readableOn(accent)
+                val checkedState = intArrayOf(android.R.attr.state_checked)
+                val uncheckedState = intArrayOf(-android.R.attr.state_checked)
+                chip.chipIconTint = ColorStateList(arrayOf(checkedState, uncheckedState), intArrayOf(onAccent, accent))
+            } else {
+                chip.chipIcon = null
+            }
         }
-        val selectedIndex = tabs.indexOf(selectedTab).coerceAtLeast(0)
-        keywordTabs.getTabAt(selectedIndex)?.select()
     }
 
     private fun renderFilteredEmails() {
@@ -345,13 +388,23 @@ class InboxActivity : AppCompatActivity() {
         val iconSize = (24 * resources.displayMetrics.density).toInt()
         val iconMargin = (16 * resources.displayMetrics.density).toInt()
         val archiveIcon = ContextCompat.getDrawable(this, R.drawable.ic_archive)?.mutate()?.apply {
-            setTint(Color.WHITE)
+            setTint(readableOn(SWIPE_ARCHIVE_COLOR))
         }
         val deleteIcon = ContextCompat.getDrawable(this, R.drawable.ic_delete)?.mutate()?.apply {
-            setTint(Color.WHITE)
+            setTint(readableOn(SWIPE_DELETE_COLOR))
         }
-        val archiveBackground = ColorDrawable(SWIPE_ARCHIVE_COLOR)
-        val deleteBackground = ColorDrawable(SWIPE_DELETE_COLOR)
+        // Rounded on the same side as the row's own corners (item_email.xml's 14dp
+        // cardCornerRadius) so the reveal doesn't show a sharp corner poking out from behind the
+        // rounded card as it slides away.
+        val cardRadius = 14f * resources.displayMetrics.density
+        val deleteBackground = android.graphics.drawable.GradientDrawable().apply {
+            setColor(SWIPE_DELETE_COLOR)
+            cornerRadii = floatArrayOf(cardRadius, cardRadius, 0f, 0f, 0f, 0f, cardRadius, cardRadius)
+        }
+        val archiveBackground = android.graphics.drawable.GradientDrawable().apply {
+            setColor(SWIPE_ARCHIVE_COLOR)
+            cornerRadii = floatArrayOf(0f, 0f, cardRadius, cardRadius, cardRadius, cardRadius, 0f, 0f)
+        }
 
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             0,
@@ -440,7 +493,7 @@ class InboxActivity : AppCompatActivity() {
         private const val MENU_THEMES = 3
         private const val MENU_PUSH_PAIRING = 4
         private const val MENU_ABOUT = 5
-        private val SWIPE_ARCHIVE_COLOR = Color.parseColor("#2E7D32")
-        private val SWIPE_DELETE_COLOR = Color.parseColor("#C62828")
+        private val SWIPE_ARCHIVE_COLOR = Color.parseColor(COLOR_WARNING)
+        private val SWIPE_DELETE_COLOR = Color.parseColor(COLOR_DANGER)
     }
 }

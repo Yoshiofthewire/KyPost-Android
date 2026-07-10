@@ -128,7 +128,7 @@ class EmailDetailActivity : AppCompatActivity() {
                     <meta name="viewport" content="width=device-width, initial-scale=1" />
                     <style>
                         body {
-                            font-family: sans-serif;
+                            font-family: monospace;
                             font-size: 16px;
                             line-height: 1.5;
                             color: ${palette.inkStrong};

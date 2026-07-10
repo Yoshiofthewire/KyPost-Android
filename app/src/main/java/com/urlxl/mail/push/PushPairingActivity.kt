@@ -20,7 +20,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.urlxl.mail.R
+import com.urlxl.mail.applyEmptyStateBackground
 import com.urlxl.mail.applyPrimaryButtonTheme
+import com.urlxl.mail.applySectionEyebrowLabel
 import com.urlxl.mail.applyThemeToActivity
 import com.urlxl.mail.applyTopInsetWithHeader
 import com.urlxl.mail.getStoredThemePalette
@@ -92,6 +94,9 @@ class PushPairingActivity : AppCompatActivity() {
         applyPrimaryButtonTheme(this, btnResyncToken)
         applyPrimaryButtonTheme(this, btnClearPairing)
         applyPrimaryButtonTheme(this, btnScanQr)
+        applyEmptyStateBackground(this, historyEmptyText)
+        applySectionEyebrowLabel(this, findViewById(R.id.pushPairingLatestTitle))
+        applySectionEyebrowLabel(this, findViewById(R.id.pushPairingHistoryTitle))
     }
 
     override fun onNewIntent(intent: android.content.Intent) {

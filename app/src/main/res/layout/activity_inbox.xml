@@ -21,19 +21,24 @@
             android:paddingEnd="16dp"
             android:paddingBottom="0dp">
 
-            <com.google.android.material.tabs.TabLayout
-                android:id="@+id/tabLayoutKeywords"
+            <HorizontalScrollView
+                android:id="@+id/keywordChipScroll"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:tabMode="scrollable"
-                app:tabGravity="start"
-                app:tabMinWidth="0dp"
-                app:tabPaddingStart="18dp"
-                app:tabPaddingEnd="18dp"
-                app:tabIndicatorFullWidth="false"
-                app:tabIndicatorHeight="4dp"
-                app:tabIndicator="@drawable/tab_indicator_rounded"
-                app:tabIndicatorAnimationMode="elastic" />
+                android:scrollbars="none"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="6dp">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/keywordChipGroup"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleLine="true"
+                    app:singleSelection="true"
+                    app:selectionRequired="true"
+                    app:chipSpacingHorizontal="6dp" />
+
+            </HorizontalScrollView>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerViewInbox"
@@ -52,6 +57,10 @@
             android:layout_height="wrap_content"
             android:elevation="12dp"
             app:labelVisibilityMode="labeled"
+            app:itemTextAppearanceActive="@style/TextAppearance.Llama.BottomNavLabel"
+            app:itemTextAppearanceInactive="@style/TextAppearance.Llama.BottomNavLabel"
+            app:itemPaddingTop="0dp"
+            app:itemPaddingBottom="20dp"
             app:menu="@menu/bottom_nav_menu" />
 
     </LinearLayout>

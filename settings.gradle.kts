@@ -19,6 +19,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Infomaniak's android-rich-html-editor (Compose screen's rich text body) is only
+        // published to JitPack, not Maven Central.
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

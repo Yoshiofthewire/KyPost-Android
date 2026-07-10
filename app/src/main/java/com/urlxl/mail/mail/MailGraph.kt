@@ -3,6 +3,7 @@ package com.urlxl.mail.mail
 import android.content.Context
 import com.urlxl.mail.MailGateway
 import com.urlxl.mail.MailSettings
+import com.urlxl.mail.SingletonGraph
 import com.urlxl.mail.data.DataRuntime
 import com.urlxl.mail.push.PushRuntime
 import kotlinx.coroutines.flow.first
@@ -30,12 +31,7 @@ class MailGraph(context: Context) {
 }
 
 object MailRuntime {
-    @Volatile
-    private var graphInstance: MailGraph? = null
+    private val holder = SingletonGraph(::MailGraph)
 
-    fun graph(context: Context): MailGraph {
-        return graphInstance ?: synchronized(this) {
-            graphInstance ?: MailGraph(context.applicationContext).also { graphInstance = it }
-        }
-    }
+    fun graph(context: Context): MailGraph = holder.get(context)
 }

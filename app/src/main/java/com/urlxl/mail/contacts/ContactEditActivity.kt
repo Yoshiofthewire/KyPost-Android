@@ -1,16 +1,21 @@
 package com.urlxl.mail.contacts
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.urlxl.mail.R
+import com.urlxl.mail.applyDangerButtonTheme
 import com.urlxl.mail.applyPrimaryButtonTheme
 import com.urlxl.mail.applyThemeToActivity
 import com.urlxl.mail.applyTopInsetWithHeader
+import com.urlxl.mail.bindAvatar
 import com.urlxl.mail.data.DataRuntime
 import kotlinx.coroutines.launch
 
@@ -20,6 +25,7 @@ import kotlinx.coroutines.launch
  *  rather than silently dropping them on save. */
 class ContactEditActivity : AppCompatActivity() {
 
+    private lateinit var avatarView: TextView
     private lateinit var fnField: EditText
     private lateinit var orgField: EditText
     private lateinit var emailField: EditText
@@ -40,6 +46,7 @@ class ContactEditActivity : AppCompatActivity() {
         applyTopInsetWithHeader(this, findViewById(R.id.contactEditRoot))
         setTitle(R.string.contacts_edit_title)
 
+        avatarView = findViewById(R.id.contactEditAvatar)
         fnField = findViewById(R.id.editContactName)
         orgField = findViewById(R.id.editContactOrg)
         emailField = findViewById(R.id.editContactEmail)
@@ -49,7 +56,15 @@ class ContactEditActivity : AppCompatActivity() {
         deleteButton = findViewById(R.id.btnDeleteContact)
 
         applyPrimaryButtonTheme(this, saveButton)
-        applyPrimaryButtonTheme(this, deleteButton)
+        applyDangerButtonTheme(this, deleteButton)
+        bindAvatar(this, avatarView, fnField.text.toString(), sizeDp = 52)
+        fnField.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) {
+                bindAvatar(this@ContactEditActivity, avatarView, s?.toString().orEmpty(), sizeDp = 52)
+            }
+        })
 
         existingUid = intent.getStringExtra(EXTRA_UID).orEmpty()
         if (existingUid.isBlank()) {
@@ -66,7 +81,8 @@ class ContactEditActivity : AppCompatActivity() {
         super.onResume()
         applyThemeToActivity(this)
         applyPrimaryButtonTheme(this, saveButton)
-        applyPrimaryButtonTheme(this, deleteButton)
+        applyDangerButtonTheme(this, deleteButton)
+        bindAvatar(this, avatarView, fnField.text.toString(), sizeDp = 52)
     }
 
     private fun loadExisting(uid: String) {

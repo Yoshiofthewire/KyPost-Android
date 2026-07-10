@@ -181,7 +181,7 @@ class MailGateway(private val config: MailAccountConfig) {
         }
     }
 
-    fun sendEmail(to: String, subject: String, body: String) {
+    fun sendEmail(to: String, subject: String, body: String, isHtml: Boolean = false) {
         if (!isConfigured()) {
             return
         }
@@ -202,7 +202,10 @@ class MailGateway(private val config: MailAccountConfig) {
                 setRecipients(Message.RecipientType.TO, InternetAddress.parse(to))
                 sentDate = Date()
                 setSubject(subject)
-                setText(body)
+                // setText() always sends text/plain; the compose screen's rich editor produces
+                // HTML, which without this would show recipients the literal markup instead of
+                // formatted text.
+                if (isHtml) setContent(body, "text/html; charset=utf-8") else setText(body)
             }
             Transport.send(message)
         }.onFailure {
@@ -332,6 +335,11 @@ class MailGateway(private val config: MailAccountConfig) {
         val sender = message.from?.firstOrNull()?.toString()?.ifBlank { "Unknown sender" } ?: "Unknown sender"
         val preview = extractPreview(message)
         val keywords = message.flags.userFlags.toSet()
+        // Prefetched alongside ENVELOPE in fetchEmails' FetchProfile, so this reads from the
+        // batch fetch rather than issuing a per-message round trip. Without this, every fetch
+        // defaulted every message back to "unread" (the Email data class default), silently
+        // reverting markAsRead()'s server-side \Seen flag on the very next refresh.
+        val status = if (message.flags.contains(Flags.Flag.SEEN)) "read" else "unread"
 
         return Email(
             id = messageId,
@@ -339,6 +347,7 @@ class MailGateway(private val config: MailAccountConfig) {
             sender = sender,
             preview = preview,
             keywords = keywords,
+            status = status,
         )
     }
 
