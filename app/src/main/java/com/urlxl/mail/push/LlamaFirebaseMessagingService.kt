@@ -14,6 +14,7 @@ class LlamaFirebaseMessagingService : FirebaseMessagingService() {
     override fun onCreate() {
         super.onCreate()
         PushNotificationDispatcher.ensureChannel(this)
+        PushNotificationDispatcher.ensureMfaChannel(this)
     }
 
     override fun onNewToken(token: String) {
@@ -24,6 +25,12 @@ class LlamaFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
+        val mfaChallenge = MfaChallengePayloadParser.parse(message.data)
+        if (mfaChallenge != null) {
+            PushNotificationDispatcher.showMfaChallenge(applicationContext, mfaChallenge)
+            return
+        }
+
         val payload = PushPayloadParser.parse(message.data) ?: return
         val graph = PushRuntime.graph(applicationContext)
         serviceScope.launch {

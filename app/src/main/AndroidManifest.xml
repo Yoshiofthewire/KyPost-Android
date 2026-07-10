@@ -83,6 +83,15 @@
             </intent-filter>
         </service>
 
+        <receiver
+            android:name=".push.MfaResponseReceiver"
+            android:exported="false" />
+
+        <activity
+            android:name=".push.MfaApprovalActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
     </application>
 
 </manifest>

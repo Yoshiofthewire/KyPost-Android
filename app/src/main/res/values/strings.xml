@@ -96,6 +96,11 @@
     <string name="push_pairing_history_empty">No push notifications received yet</string>
     <string name="push_pairing_scan_qr">Scan QR Code</string>
 
+    <string name="mfa_approval_title">Approve sign-in</string>
+    <string name="mfa_approval_body">Someone is trying to sign in to your account. If this wasn\'t you, deny it.</string>
+    <string name="mfa_approval_approve">Approve</string>
+    <string name="mfa_approval_deny">Deny</string>
+
     <string name="menu_contacts">Contacts</string>
     <string name="contacts_title">Contacts</string>
     <string name="contacts_empty">No contacts yet. Pair this device and tap + to add one.</string>

@@ -15,6 +15,11 @@ import com.urlxl.mail.R
 
 object PushNotificationDispatcher {
     private const val CHANNEL_ID = "llama_labels_push"
+    private const val MFA_CHANNEL_ID = "llama_labels_mfa"
+
+    internal const val ACTION_MFA_APPROVE = "com.urlxl.mail.push.ACTION_MFA_APPROVE"
+    internal const val ACTION_MFA_DENY = "com.urlxl.mail.push.ACTION_MFA_DENY"
+    internal const val EXTRA_MFA_CHALLENGE_ID = "challengeId"
 
     fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -28,6 +33,22 @@ object PushNotificationDispatcher {
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
             description = "Push notifications for labeled email events"
+        }
+        manager.createNotificationChannel(channel)
+    }
+
+    fun ensureMfaChannel(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.getNotificationChannel(MFA_CHANNEL_ID) != null) return
+
+        val channel = NotificationChannel(
+            MFA_CHANNEL_ID,
+            "Sign-in approvals",
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = "Approve or deny sign-in attempts to your account"
         }
         manager.createNotificationChannel(channel)
     }
@@ -62,5 +83,65 @@ object PushNotificationDispatcher {
 
         NotificationManagerCompat.from(context).notify(payload.messageId.hashCode(), notification)
     }
-}
 
+    fun showMfaChallenge(context: Context, payload: MfaChallengePayload) {
+        ensureMfaChannel(context)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            if (!granted) return
+        }
+
+        val notificationId = mfaNotificationId(payload.challengeId)
+
+        val tapIntent = Intent(context, MfaApprovalActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .putExtra(EXTRA_MFA_CHALLENGE_ID, payload.challengeId)
+        val tapPendingIntent = android.app.PendingIntent.getActivity(
+            context,
+            notificationId,
+            tapIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val approveIntent = Intent(context, MfaResponseReceiver::class.java)
+            .setAction(ACTION_MFA_APPROVE)
+            .putExtra(EXTRA_MFA_CHALLENGE_ID, payload.challengeId)
+        val approvePendingIntent = android.app.PendingIntent.getBroadcast(
+            context,
+            notificationId * 2,
+            approveIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val denyIntent = Intent(context, MfaResponseReceiver::class.java)
+            .setAction(ACTION_MFA_DENY)
+            .putExtra(EXTRA_MFA_CHALLENGE_ID, payload.challengeId)
+        val denyPendingIntent = android.app.PendingIntent.getBroadcast(
+            context,
+            notificationId * 2 + 1,
+            denyIntent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val notification = NotificationCompat.Builder(context, MFA_CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("Approve sign-in")
+            .setContentText("Tap to approve or deny a sign-in to your account.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setAutoCancel(true)
+            .setContentIntent(tapPendingIntent)
+            .addAction(0, "Approve", approvePendingIntent)
+            .addAction(0, "Deny", denyPendingIntent)
+            .build()
+
+        NotificationManagerCompat.from(context).notify(notificationId, notification)
+    }
+
+    fun cancelMfaChallenge(context: Context, challengeId: String) {
+        NotificationManagerCompat.from(context).cancel(mfaNotificationId(challengeId))
+    }
+
+    private fun mfaNotificationId(challengeId: String): Int = ("mfa-$challengeId").hashCode()
+}
