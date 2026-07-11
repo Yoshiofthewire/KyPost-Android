@@ -218,7 +218,6 @@ private fun RelayEmailDto.toUiEmail(tab: String): Email = Email(
     subject = subject,
     sender = sender,
     preview = body.orEmpty().take(140),
-    keywords = keywords.toSet(),
     sentTo = sentTo,
     cc = cc,
     bcc = bcc,

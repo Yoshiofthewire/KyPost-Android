@@ -83,11 +83,7 @@ internal fun reconcileFetchResult(emailDao: EmailDao, folder: String, mode: Stri
     val mergedEntities = updated.map { email ->
         val incoming = email.toEntity(folder, mode)
         val existing = emailDao.getById(incoming.messageId)
-        if (existing != null) {
-            incoming.copy(body = existing.body, preview = existing.preview, keywordsJson = existing.keywordsJson)
-        } else {
-            incoming
-        }
+        if (existing != null) incoming.copy(body = existing.body, preview = existing.preview) else incoming
     }
     emailDao.upsertAll(newEntities + mergedEntities)
     result.removedMessageIds.forEach { emailDao.deleteById(it) }

@@ -38,7 +38,6 @@ data class RelayEmailDto(
     val label: String = "",
     val status: String = "unread",
     val atUtc: String? = null,
-    val keywords: List<String> = emptyList(),
     // Only present when the parent response has "delta": true — "new" or "updated"
     // (Mobile_Mail_Relay.md Part 5, delta/cursor sync v2).
     val changeType: String? = null,
