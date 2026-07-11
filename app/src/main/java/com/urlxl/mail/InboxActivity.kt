@@ -12,6 +12,7 @@ import android.os.Looper
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -98,6 +99,7 @@ class InboxActivity : AppCompatActivity() {
         applyInboxThemeChrome()
         setupRecyclerView()
         setupTabs()
+        setupHeaderFolderDropdown()
         setupBottomNav()
         setupSwipeGestures()
 
@@ -455,6 +457,31 @@ class InboxActivity : AppCompatActivity() {
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun setupHeaderFolderDropdown() {
+        val headerTitle = findViewById<View>(R.id.inboxRoot)
+        headerTitle.setOnClickListener {
+            val popupMenu = PopupMenu(this, headerTitle)
+            popupMenu.menu.add(0, 0, 0, getString(R.string.nav_inbox))
+            popupMenu.menu.add(0, 1, 1, getString(R.string.nav_junk))
+            popupMenu.menu.add(0, 2, 2, getString(R.string.nav_trash))
+
+            popupMenu.setOnMenuItemClickListener { menuItem ->
+                val folder = when (menuItem.itemId) {
+                    0 -> "INBOX"
+                    1 -> "Junk"
+                    2 -> "Trash"
+                    else -> return@setOnMenuItemClickListener false
+                }
+                currentFolder = folder
+                selectedTab = KeywordTabs.ALL
+                applyFolderTitle()
+                refreshInbox()
+                true
+            }
+            popupMenu.show()
         }
     }
 
