@@ -213,17 +213,21 @@ private fun MailAction.wireValue(): String = when (this) {
 private fun MailDraft.toWireDto(): RelayMailRequestDto =
     RelayMailRequestDto(to = to, cc = cc, bcc = bcc, subject = subject, body = body, mode = mode)
 
-private fun RelayEmailDto.toUiEmail(tab: String): Email = Email(
-    id = messageId,
-    subject = subject,
-    sender = sender,
-    preview = body.orEmpty().take(140),
-    sentTo = sentTo,
-    cc = cc,
-    bcc = bcc,
-    body = body,
-    label = label.ifBlank { tab },
-    status = status,
-    atUtc = atUtc,
-    sourceMode = "relay",
-)
+private fun RelayEmailDto.toUiEmail(tab: String): Email {
+    val emailLabel = label.ifBlank { tab }
+    return Email(
+        id = messageId,
+        subject = subject,
+        sender = sender,
+        preview = body.orEmpty().take(140),
+        keywords = if (emailLabel.isNotBlank()) setOf(emailLabel) else emptySet(),
+        sentTo = sentTo,
+        cc = cc,
+        bcc = bcc,
+        body = body,
+        label = emailLabel,
+        status = status,
+        atUtc = atUtc,
+        sourceMode = "relay",
+    )
+}
