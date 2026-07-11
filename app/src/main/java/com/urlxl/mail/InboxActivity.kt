@@ -44,6 +44,7 @@ class InboxActivity : AppCompatActivity() {
     private lateinit var cancelLoading: View
     private lateinit var inboxRoot: View
     private lateinit var inboxContent: View
+    private lateinit var headerFolderTitle: TextView
     private lateinit var adapter: EmailAdapter
     private val ioExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -93,6 +94,7 @@ class InboxActivity : AppCompatActivity() {
         keywordSettings = KeywordSettings(this)
 
         initViews()
+        supportActionBar?.setDisplayShowTitleEnabled(false)
         applyFolderTitle()
         applyTopInsetWithHeader(this, inboxContent)
         applyBottomInset(bottomNav)
@@ -127,7 +129,9 @@ class InboxActivity : AppCompatActivity() {
             "Trash" -> getString(R.string.nav_trash)
             else -> getString(R.string.nav_inbox)
         }
-        applyThemedTitle(this, getString(R.string.inbox_heading, folderLabel))
+        val title = getString(R.string.inbox_heading, folderLabel)
+        applyThemedTitle(this, title)
+        headerFolderTitle.text = title
     }
 
     override fun onStart() {
@@ -166,6 +170,7 @@ class InboxActivity : AppCompatActivity() {
     private fun initViews() {
         inboxRoot = findViewById(R.id.inboxRoot)
         inboxContent = findViewById(R.id.inboxContent)
+        headerFolderTitle = findViewById(R.id.headerFolderTitle)
         recyclerView = findViewById(R.id.recyclerViewInbox)
         keywordChipScroll = findViewById(R.id.keywordChipScroll)
         keywordChips = findViewById(R.id.keywordChipGroup)
@@ -192,6 +197,8 @@ class InboxActivity : AppCompatActivity() {
         inboxRoot.setBackgroundColor(bg)
         inboxContent.setBackgroundColor(bg)
         recyclerView.setBackgroundColor(bg)
+
+        headerFolderTitle.setTextColor(inkStrong)
 
         // Rounded panel bar behind the keyword pills, matching the app's 14dp card/panel radius.
         keywordChipScroll.background = GradientDrawable().apply {
@@ -461,7 +468,7 @@ class InboxActivity : AppCompatActivity() {
     }
 
     private fun setupHeaderFolderDropdown() {
-        val headerTitle = findViewById<View>(R.id.inboxRoot)
+        val headerTitle = findViewById<View>(R.id.headerFolderTitle)
         headerTitle.setOnClickListener {
             val popupMenu = PopupMenu(this, headerTitle)
             popupMenu.menu.add(0, 0, 0, getString(R.string.nav_inbox))
