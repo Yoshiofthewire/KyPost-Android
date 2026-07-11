@@ -96,7 +96,6 @@ class InboxActivity : AppCompatActivity() {
         initViews()
         supportActionBar?.setDisplayShowTitleEnabled(false)
         applyFolderTitle()
-        applyTopInsetWithHeader(this, inboxContent)
         applyTopInsetWithHeader(this, headerFolderTitle)
         applyBottomInset(bottomNav)
         applyInboxThemeChrome()
