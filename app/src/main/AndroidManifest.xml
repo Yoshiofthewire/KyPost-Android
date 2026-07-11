@@ -3,6 +3,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
 
     <application
         android:name=".LlamaApp"
@@ -93,6 +95,17 @@
             android:name=".push.MfaApprovalActivity"
             android:exported="false"
             android:launchMode="singleTop" />
+
+        <service
+            android:name=".contacts.device.LlamaContactAuthenticatorService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/contact_authenticator" />
+        </service>
 
     </application>
 

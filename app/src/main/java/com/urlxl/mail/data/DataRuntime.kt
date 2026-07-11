@@ -6,7 +6,9 @@ import com.urlxl.mail.SingletonGraph
 
 class DataGraph(context: Context) {
     private val appContext = context.applicationContext
-    val database: AppDatabase = Room.databaseBuilder(appContext, AppDatabase::class.java, "llama_mail.db").build()
+    val database: AppDatabase = Room.databaseBuilder(appContext, AppDatabase::class.java, "llama_mail.db")
+        .addMigrations(AppDatabase.MIGRATION_1_2)
+        .build()
 }
 
 /** Standalone singleton, kept independent of PushGraph/LlamaApp — mirrors how PushGraph itself

@@ -10,8 +10,9 @@ import androidx.room.TypeConverters
         FolderEntity::class,
         ContactEntity::class,
         PendingContactChangeEntity::class,
+        DeviceContactLinkEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -20,4 +21,17 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun folderDao(): FolderDao
     abstract fun contactDao(): ContactDao
     abstract fun pendingContactChangeDao(): PendingContactChangeDao
+    abstract fun deviceContactLinkDao(): DeviceContactLinkDao
+
+    companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `device_contact_links` (" +
+                        "`uid` TEXT NOT NULL, `rawContactId` INTEGER NOT NULL, " +
+                        "`deviceUpdatedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`uid`))",
+                )
+            }
+        }
+    }
 }

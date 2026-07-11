@@ -16,6 +16,7 @@ import com.urlxl.mail.applyPrimaryButtonTheme
 import com.urlxl.mail.applyThemeToActivity
 import com.urlxl.mail.applyTopInsetWithHeader
 import com.urlxl.mail.bindAvatar
+import com.urlxl.mail.contacts.device.DeviceContactsRuntime
 import com.urlxl.mail.data.DataRuntime
 import kotlinx.coroutines.launch
 
@@ -129,6 +130,7 @@ class ContactEditActivity : AppCompatActivity() {
                 graph.repository.queueUpdate(dto)
             }
             graph.coordinator.syncNowAsync()
+            DeviceContactsRuntime.graph(this@ContactEditActivity).coordinator.syncNowAsync()
             Toast.makeText(this@ContactEditActivity, R.string.contacts_saved, Toast.LENGTH_SHORT).show()
             finish()
         }
@@ -136,6 +138,9 @@ class ContactEditActivity : AppCompatActivity() {
 
     private fun delete() {
         lifecycleScope.launch {
+            val deviceGraph = DeviceContactsRuntime.graph(this@ContactEditActivity)
+            deviceGraph.repository.deleteDeviceRawContact(existingUid)
+
             val graph = ContactsRuntime.graph(this@ContactEditActivity)
             graph.repository.queueDelete(existingUid, existingRev)
             graph.coordinator.syncNowAsync()

@@ -100,4 +100,10 @@
     <string name="loading_emails">Syncing emails…</string>
     <string name="finding_email">Finding new email…</string>
     <string name="email_not_found">Email no longer available</string>
+
+    <string name="contacts_device_sync_enable">Enable device contact sync</string>
+    <string name="contacts_device_sync_disable">Disable device contact sync</string>
+    <string name="contacts_device_sync_permission_denied">Permission denied. Unable to sync with device contacts.</string>
+    <string name="contacts_device_sync_enabled_toast">Device contact sync enabled</string>
+    <string name="contacts_device_sync_disabled_toast">Device contact sync disabled</string>
 </resources>
