@@ -461,29 +461,19 @@ class InboxActivity : AppCompatActivity() {
     private fun setupBottomNav() {
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_compose -> {
-                    startActivity(Intent(this, ComposeActivity::class.java))
-                    true
-                }
-                R.id.nav_junk -> {
-                    currentFolder = "Junk"
-                    selectedTab = KeywordTabs.ALL
-                    applyFolderTitle()
-                    refreshInbox()
-                    true
-                }
-                R.id.nav_trash -> {
-                    currentFolder = "Trash"
-                    selectedTab = KeywordTabs.ALL
-                    applyFolderTitle()
-                    refreshInbox()
-                    true
-                }
                 R.id.nav_inbox -> {
                     currentFolder = "INBOX"
                     selectedTab = KeywordTabs.ALL
                     applyFolderTitle()
                     refreshInbox()
+                    true
+                }
+                R.id.nav_compose -> {
+                    startActivity(Intent(this, ComposeActivity::class.java))
+                    true
+                }
+                R.id.nav_contacts -> {
+                    startActivity(Intent(this, com.urlxl.mail.contacts.ContactsListActivity::class.java))
                     true
                 }
                 else -> false
