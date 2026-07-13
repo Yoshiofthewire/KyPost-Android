@@ -87,27 +87,31 @@
                     android:text="@string/push_pairing_clear" />
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/pushProviderChipGroup"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="8dp">
+                android:layout_marginTop="8dp"
+                android:layout_gravity="center_horizontal"
+                app:singleSelection="true"
+                app:selectionRequired="true">
 
-                <Button
-                    android:id="@+id/btnUseUnifiedPush"
-                    android:layout_width="0dp"
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipUseUnifiedPush"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
+                    android:checkable="true"
+                    android:clickable="true"
                     android:text="@string/push_pairing_use_unifiedpush" />
 
-                <Button
-                    android:id="@+id/btnUseFirebase"
-                    android:layout_width="0dp"
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipUseFirebase"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
+                    android:checkable="true"
+                    android:clickable="true"
                     android:text="@string/push_pairing_use_firebase" />
-            </LinearLayout>
+            </com.google.android.material.chip.ChipGroup>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

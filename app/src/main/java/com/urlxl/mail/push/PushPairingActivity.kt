@@ -18,9 +18,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.chip.Chip
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.urlxl.mail.R
 import com.urlxl.mail.applyEmptyStateBackground
+import com.urlxl.mail.applyPillChipTheme
 import com.urlxl.mail.applyPrimaryButtonTheme
 import com.urlxl.mail.applySectionEyebrowLabel
 import com.urlxl.mail.applyThemeToActivity
@@ -39,8 +41,8 @@ class PushPairingActivity : AppCompatActivity() {
     private lateinit var btnResyncToken: Button
     private lateinit var btnClearPairing: Button
     private lateinit var btnScanQr: Button
-    private lateinit var btnUseUnifiedPush: Button
-    private lateinit var btnUseFirebase: Button
+    private lateinit var chipUseUnifiedPush: Chip
+    private lateinit var chipUseFirebase: Chip
 
     private lateinit var statusText: TextView
     private lateinit var subscriberText: TextView
@@ -81,8 +83,8 @@ class PushPairingActivity : AppCompatActivity() {
         btnResyncToken.setOnClickListener { viewModel.resyncToken() }
         btnClearPairing.setOnClickListener { viewModel.clearPairing() }
         btnScanQr.setOnClickListener { scanQr() }
-        btnUseUnifiedPush.setOnClickListener { viewModel.switchToUnifiedPush(this) }
-        btnUseFirebase.setOnClickListener { viewModel.switchToFirebase() }
+        chipUseUnifiedPush.setOnClickListener { viewModel.switchToUnifiedPush(this) }
+        chipUseFirebase.setOnClickListener { viewModel.switchToFirebase() }
 
         applyThemeToActivity(this)
 
@@ -99,8 +101,8 @@ class PushPairingActivity : AppCompatActivity() {
         applyPrimaryButtonTheme(this, btnResyncToken)
         applyPrimaryButtonTheme(this, btnClearPairing)
         applyPrimaryButtonTheme(this, btnScanQr)
-        applyPrimaryButtonTheme(this, btnUseUnifiedPush)
-        applyPrimaryButtonTheme(this, btnUseFirebase)
+        applyPillChipTheme(this, chipUseUnifiedPush)
+        applyPillChipTheme(this, chipUseFirebase)
         applyEmptyStateBackground(this, historyEmptyText)
         applySectionEyebrowLabel(this, findViewById(R.id.pushPairingLatestTitle))
         applySectionEyebrowLabel(this, findViewById(R.id.pushPairingHistoryTitle))
@@ -126,8 +128,8 @@ class PushPairingActivity : AppCompatActivity() {
         historyEmptyText = findViewById(R.id.pushPairingHistoryEmpty)
         btnResyncToken = findViewById(R.id.btnResyncToken)
         btnClearPairing = findViewById(R.id.btnClearPairing)
-        btnUseUnifiedPush = findViewById(R.id.btnUseUnifiedPush)
-        btnUseFirebase = findViewById(R.id.btnUseFirebase)
+        chipUseUnifiedPush = findViewById(R.id.chipUseUnifiedPush)
+        chipUseFirebase = findViewById(R.id.chipUseFirebase)
     }
 
     private fun render(state: PushHomeUiState) {
@@ -160,11 +162,14 @@ class PushPairingActivity : AppCompatActivity() {
         historyAdapter.submit(state.history)
 
         val paired = state.pairing != null
+        val isUnifiedPush = state.transport == "unifiedpush"
         btnResyncToken.isEnabled = !state.isWorking
         btnClearPairing.isEnabled = !state.isWorking
         btnScanQr.isEnabled = !state.isWorking
-        btnUseUnifiedPush.isEnabled = !state.isWorking && paired && state.transport != "unifiedpush"
-        btnUseFirebase.isEnabled = !state.isWorking && paired && state.transport == "unifiedpush"
+        chipUseUnifiedPush.isChecked = isUnifiedPush
+        chipUseFirebase.isChecked = !isUnifiedPush
+        chipUseUnifiedPush.isEnabled = !state.isWorking && paired && !isUnifiedPush
+        chipUseFirebase.isEnabled = !state.isWorking && paired && isUnifiedPush
 
         val message = state.localMessage
         if (!message.isNullOrBlank()) {
