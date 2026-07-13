@@ -14,5 +14,6 @@ data class Email(
     val label: String = "",
     val status: String = "unread",
     val atUtc: String? = null,
+    val hasAttachments: Boolean = false,
     val sourceMode: String = "relay",
 )

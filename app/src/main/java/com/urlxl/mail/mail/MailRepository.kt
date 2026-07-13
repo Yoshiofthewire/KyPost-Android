@@ -57,6 +57,12 @@ class MailRepository(
 
     fun send(draft: MailDraft): MailOutcome<MailSendOutcome> = relaySource.sendMail(draft)
 
+    fun listAttachments(id: String, folder: String): MailOutcome<List<AttachmentInfo>> =
+        relaySource.listAttachments(id, folder)
+
+    fun downloadAttachment(id: String, folder: String, index: Int): MailOutcome<DownloadedAttachment> =
+        relaySource.downloadAttachment(id, folder, index)
+
     fun fetchBody(id: String, folder: String): MailOutcome<MailMessageBody> {
         val cached = emailDao.getBody(id)
         if (!cached.isNullOrBlank()) {

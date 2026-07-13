@@ -16,6 +16,7 @@ class PushSyncCoordinator(
         if (result is NativeRegistrationResult.Success) {
             repository.savePairing(pairing.copy(deviceId = result.deviceId ?: pairing.deviceId))
             persistDelivery(pairing, result)
+            repository.updateTransport(result.transport)
             repository.updateSyncState(lastSyncAtEpochMs = result.syncedAtEpochMs, syncError = null)
         }
         return result
@@ -34,18 +35,19 @@ class PushSyncCoordinator(
         return syncAndPersist(pairing = pairing, token = token)
     }
 
-    suspend fun syncProvidedToken(token: String): NativeRegistrationResult {
+    suspend fun syncProvidedToken(token: String, transport: String? = null): NativeRegistrationResult {
         val state = repository.state.first()
         val pairing = state.pairing ?: return NativeRegistrationResult.Error("Device is not paired")
-        return syncAndPersist(pairing = pairing, token = token)
+        return syncAndPersist(pairing = pairing, token = token, transport = transport)
     }
 
-    private suspend fun syncAndPersist(pairing: PairingData, token: String): NativeRegistrationResult {
-        val result = registrationClient.register(pairing = pairing, token = token)
+    private suspend fun syncAndPersist(pairing: PairingData, token: String, transport: String? = null): NativeRegistrationResult {
+        val result = registrationClient.register(pairing = pairing, token = token, transport = transport)
         when (result) {
             is NativeRegistrationResult.Success -> {
                 repository.savePairing(pairing.copy(deviceId = result.deviceId ?: pairing.deviceId))
                 persistDelivery(pairing, result)
+                repository.updateTransport(result.transport)
                 repository.updateSyncState(lastSyncAtEpochMs = result.syncedAtEpochMs, syncError = null)
             }
             is NativeRegistrationResult.Error -> repository.updateSyncState(lastSyncAtEpochMs = null, syncError = result.message)

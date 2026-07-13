@@ -38,6 +38,9 @@ data class RelayEmailDto(
     val label: String = "",
     val status: String = "unread",
     val atUtc: String? = null,
+    // Warm-path hint for the inbox paperclip badge; false when the server
+    // hasn't warmed the message yet (see backend mailcache.Entry).
+    val hasAttachments: Boolean = false,
     // Only present when the parent response has "delta": true — "new" or "updated"
     // (Mobile_Mail_Relay.md Part 5, delta/cursor sync v2).
     val changeType: String? = null,
@@ -95,6 +98,30 @@ data class RelayMailRequestDto(
     val subject: String,
     val body: String,
     val mode: String = "plain",
+    val attachments: List<RelayAttachmentDto> = emptyList(),
+)
+
+/** Outgoing attachment wire shape accepted by /api/mail/send and /api/mail/draft. */
+@Serializable
+data class RelayAttachmentDto(
+    val name: String,
+    val mimeType: String,
+    val dataBase64: String,
+)
+
+/** One received attachment's metadata from GET /api/mail/attachments. */
+@Serializable
+data class RelayAttachmentInfoDto(
+    val index: Int = 0,
+    val name: String = "",
+    val mimeType: String = "",
+    val size: Int = 0,
+)
+
+@Serializable
+data class RelayAttachmentListResponseDto(
+    val ok: Boolean = false,
+    val attachments: List<RelayAttachmentInfoDto> = emptyList(),
 )
 
 @Serializable

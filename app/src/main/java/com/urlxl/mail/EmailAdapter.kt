@@ -23,7 +23,7 @@ class EmailAdapter(
         private val senderTextView: TextView = view.findViewById(R.id.textViewSender)
 
         fun bind(email: Email, palette: ThemePalette) {
-            subjectTextView.text = email.subject
+            subjectTextView.text = if (email.hasAttachments) "📎 ${email.subject}" else email.subject
             senderTextView.text = email.sender
 
             val panel = Color.parseColor(palette.panel)

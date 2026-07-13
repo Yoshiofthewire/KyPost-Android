@@ -55,11 +55,26 @@ data class MailDraft(
     val subject: String,
     val body: String,
     val mode: String = "plain",
+    val attachments: List<OutgoingAttachment> = emptyList(),
+)
+
+/** An attachment the user picked to send: raw base64 payload plus display metadata. */
+data class OutgoingAttachment(
+    val name: String,
+    val mimeType: String,
+    val dataBase64: String,
+    val size: Int,
 )
 
 data class MailSendOutcome(val sentSaved: Boolean, val warning: String)
 
 data class MailMessageBody(val html: String, val toAddresses: List<String>, val ccAddresses: List<String>)
+
+/** One received attachment's metadata (no content), from GET /api/mail/attachments. */
+data class AttachmentInfo(val index: Int, val name: String, val mimeType: String, val size: Int)
+
+/** A downloaded attachment's bytes plus the metadata needed to save it. */
+data class DownloadedAttachment(val name: String, val mimeType: String, val bytes: ByteArray)
 
 /**
  * Blocking (non-suspend) by design: callers already run on a background executor thread,
@@ -82,4 +97,6 @@ interface MailSource {
     fun saveDraft(draft: MailDraft): MailOutcome<Unit>
     fun sendMail(draft: MailDraft): MailOutcome<MailSendOutcome>
     fun fetchMessageBody(messageId: String, folder: String): MailOutcome<MailMessageBody>
+    fun listAttachments(messageId: String, folder: String): MailOutcome<List<AttachmentInfo>>
+    fun downloadAttachment(messageId: String, folder: String, index: Int): MailOutcome<DownloadedAttachment>
 }

@@ -24,6 +24,7 @@ data class NativeRegistrationRequest(
     @SerialName("deviceToken") val deviceToken: String,
     @SerialName("deviceId") val deviceId: String?,
     @SerialName("platform") val platform: String,
+    @SerialName("transport") val transport: String? = null,
     @SerialName("deviceName") val deviceName: String?,
     @SerialName("appVersion") val appVersion: String?,
 )
@@ -37,6 +38,10 @@ data class NativeRegistrationResponse(
     // when in pull mode. Both may be absent on older servers.
     @SerialName("deliveryMode") val deliveryMode: String? = null,
     @SerialName("pullEndpoint") val pullEndpoint: String? = null,
+    // The transport the server actually stored ("fcm" | "apns" | "unifiedpush"), echoed back
+    // so the client displays an authoritative value rather than just assuming its request won.
+    // Absent on older servers.
+    @SerialName("transport") val transport: String? = null,
 )
 
 /**
@@ -50,7 +55,7 @@ fun resolvePullEndpoint(serverUrl: String, provided: String?): String {
 }
 
 object NativeRegistrationRequestMapper {
-    fun map(pairing: PairingData, token: String): NativeRegistrationRequest {
+    fun map(pairing: PairingData, token: String, transport: String? = null): NativeRegistrationRequest {
         return NativeRegistrationRequest(
             subscriberId = pairing.subscriberId,
             subscriberHash = pairing.subscriberHash.takeIf { it.isNotBlank() },
@@ -58,6 +63,7 @@ object NativeRegistrationRequestMapper {
             deviceToken = token,
             deviceId = pairing.deviceId,
             platform = "android",
+            transport = transport,
             deviceName = Build.MODEL,
             appVersion = "llama Mail for Android v$APP_VERSION",
         )
@@ -70,6 +76,7 @@ sealed class NativeRegistrationResult {
         val deviceId: String?,
         val deliveryMode: DeliveryMode = DeliveryMode.PUSH,
         val pullEndpoint: String? = null,
+        val transport: String? = null,
     ) : NativeRegistrationResult()
     data class Error(val message: String, val expiredPairingToken: Boolean = false) : NativeRegistrationResult()
 }
@@ -82,10 +89,11 @@ class NativeRegistrationClient(
         pairing: PairingData,
         token: String,
         nowEpochMs: Long = System.currentTimeMillis(),
+        transport: String? = null,
     ): NativeRegistrationResult {
         if (token.isBlank()) return NativeRegistrationResult.Error("FCM token is empty")
 
-        val request = NativeRegistrationRequestMapper.map(pairing = pairing, token = token)
+        val request = NativeRegistrationRequestMapper.map(pairing = pairing, token = token, transport = transport)
         val httpRequest = Request.Builder()
             .url(pairing.registrationUrl)
             .post(json.encodeToString(request).toRequestBody(JSON_MEDIA_TYPE))
@@ -106,6 +114,7 @@ class NativeRegistrationClient(
                         deviceId = body.deviceId,
                         deliveryMode = DeliveryMode.fromWire(body.deliveryMode),
                         pullEndpoint = body.pullEndpoint,
+                        transport = body.transport,
                     )
                 } else {
                     NativeRegistrationResult.Error("Registration did not confirm sync")

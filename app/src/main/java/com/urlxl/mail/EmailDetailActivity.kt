@@ -1,8 +1,11 @@
 package com.urlxl.mail
 
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.text.TextUtils
 import android.view.View
 import android.webkit.WebView
@@ -11,9 +14,13 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.urlxl.mail.mail.AttachmentInfo
 import com.urlxl.mail.mail.MailOutcome
 import com.urlxl.mail.mail.MailRepository
 import com.urlxl.mail.mail.MailRuntime
+import com.urlxl.mail.mail.userFacingMessage
 import java.util.concurrent.Executors
 
 class EmailDetailActivity : AppCompatActivity() {
@@ -42,6 +49,7 @@ class EmailDetailActivity : AppCompatActivity() {
         val emailSubject = intent.getStringExtra("email_subject") ?: "No subject"
         val emailSender = intent.getStringExtra("email_sender") ?: "Unknown sender"
         val emailPreview = intent.getStringExtra("email_preview") ?: "No content"
+        val hasAttachments = intent.getBooleanExtra("email_has_attachments", false)
 
         setTitle(R.string.email_title)
 
@@ -105,6 +113,10 @@ class EmailDetailActivity : AppCompatActivity() {
             )
         }
 
+        if (hasAttachments) {
+            loadAttachments(emailId, emailFolder)
+        }
+
         webView.settings.apply {
             javaScriptEnabled = true
             builtInZoomControls = true
@@ -154,6 +166,72 @@ class EmailDetailActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun loadAttachments(emailId: String, emailFolder: String) {
+        ioExecutor.execute {
+            val outcome = mailRepository.listAttachments(emailId, emailFolder)
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                val infos = (outcome as? MailOutcome.Success)?.value.orEmpty()
+                renderAttachments(emailId, emailFolder, infos)
+            }
+        }
+    }
+
+    private fun renderAttachments(emailId: String, emailFolder: String, infos: List<AttachmentInfo>) {
+        val label = findViewById<TextView>(R.id.emailAttachmentsLabel)
+        val chips = findViewById<ChipGroup>(R.id.emailAttachmentChips)
+        chips.removeAllViews()
+        if (infos.isEmpty()) {
+            label.visibility = View.GONE
+            chips.visibility = View.GONE
+            return
+        }
+        label.visibility = View.VISIBLE
+        chips.visibility = View.VISIBLE
+        infos.forEach { info ->
+            val chip = Chip(this).apply {
+                text = "📎 ${info.name}"
+                setOnClickListener { downloadAttachment(emailId, emailFolder, info) }
+            }
+            applyPillChipTheme(this, chip)
+            chips.addView(chip)
+        }
+    }
+
+    private fun downloadAttachment(emailId: String, emailFolder: String, info: AttachmentInfo) {
+        Toast.makeText(this, getString(R.string.attachment_downloading, info.name), Toast.LENGTH_SHORT).show()
+        ioExecutor.execute {
+            val outcome = mailRepository.downloadAttachment(emailId, emailFolder, info.index)
+            val saved = (outcome as? MailOutcome.Success)?.value?.let { saveToDownloads(it.name, it.mimeType, it.bytes) } ?: false
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                val message = when {
+                    saved -> getString(R.string.attachment_saved, info.name)
+                    outcome is MailOutcome.Success -> getString(R.string.attachment_save_failed, info.name)
+                    else -> outcome.userFacingMessage() ?: getString(R.string.attachment_save_failed, info.name)
+                }
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /** Writes bytes into the shared Downloads collection via MediaStore (no storage permission
+     *  needed on the app's minSdk 31). Returns false if the insert or stream write fails. */
+    private fun saveToDownloads(name: String, mimeType: String, bytes: ByteArray): Boolean {
+        val resolver = contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, name)
+            put(MediaStore.Downloads.MIME_TYPE, mimeType.ifBlank { "application/octet-stream" })
+            put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+        }
+        return runCatching {
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: return false
+            resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return false
+            true
+        }.getOrDefault(false)
     }
 
     override fun onResume() {

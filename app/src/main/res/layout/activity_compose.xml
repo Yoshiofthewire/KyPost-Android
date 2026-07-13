@@ -54,10 +54,17 @@
 
     </LinearLayout>
 
-    <com.google.android.material.chip.ChipGroup
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+    <com.google.android.material.chip.ChipGroup
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
         app:chipSpacingHorizontal="6dp">
 
         <com.google.android.material.chip.Chip
@@ -106,16 +113,24 @@
 
     </com.google.android.material.chip.ChipGroup>
 
-    <!-- RichHtmlEditorWebView manages its own height to match its content (see its
-         updateWebViewHeight), so it needs a scrolling ancestor rather than a weighted fill: a
-         plain weighted container just gets shrunk down to the WebView's (empty) content height,
-         which is what made the body look like a single line. fillViewport stretches it to fill
-         the available space when content is short, and lets it grow/scroll once typed content
-         exceeds that — the exact pattern the library's own sample layout uses. -->
+        <Button
+            android:id="@+id/composeAttachButton"
+            style="?attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="@string/compose_attach" />
+
+    </LinearLayout>
+
+    <!-- Fixed height (not 0dp+weight): the RichHtmlEditorWebView forcibly overrides its own
+         layoutParams.height to its content height via updateWebViewHeight, and NestedScrollView's
+         fillViewport only re-stretches the content when the scroll view itself is measured with an
+         EXACTLY spec. Under 0dp+layout_weight the child ends up collapsed to the empty editor's
+         ~1-line content height, leaving the body blank. A concrete height keeps the box visible. -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="320dp"
         android:layout_marginBottom="12dp"
         android:fillViewport="true">
 
@@ -141,6 +156,14 @@
 
         </FrameLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/composeAttachmentChips"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:visibility="gone"
+        app:chipSpacingHorizontal="6dp" />
 
     <LinearLayout
         android:layout_width="match_parent"

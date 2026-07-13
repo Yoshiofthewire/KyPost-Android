@@ -20,6 +20,7 @@ fun EmailEntity.toUiEmail(): Email = Email(
     label = label,
     status = status,
     atUtc = atUtc,
+    hasAttachments = hasAttachments,
     sourceMode = sourceMode,
 )
 
@@ -37,5 +38,6 @@ fun Email.toEntity(folder: String, sourceMode: String): EmailEntity = EmailEntit
     keywordsJson = mapperJson.encodeToString(keywords.toList()),
     status = status,
     atUtc = atUtc,
+    hasAttachments = hasAttachments,
     sourceMode = sourceMode,
 )

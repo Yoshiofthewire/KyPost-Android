@@ -123,6 +123,23 @@
             android:layout_height="0dp"
             android:layout_weight="1" />
 
+        <TextView
+            android:id="@+id/emailAttachmentsLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/email_attachments"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/emailAttachmentChips"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:chipSpacingHorizontal="6dp"
+            xmlns:app="http://schemas.android.com/apk/res-auto" />
+
     </LinearLayout>
 
     <ProgressBar

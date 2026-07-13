@@ -264,6 +264,7 @@ class InboxActivity : AppCompatActivity() {
         intent.putExtra("email_sender", email.sender)
         intent.putExtra("email_preview", email.preview)
         intent.putExtra("email_folder", currentFolder)
+        intent.putExtra("email_has_attachments", email.hasAttachments)
         emailDetailLauncher.launch(intent)
     }
 

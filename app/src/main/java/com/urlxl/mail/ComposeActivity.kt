@@ -1,21 +1,28 @@
 package com.urlxl.mail
 
+import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.text.SpannableString
 import android.text.TextUtils
 import android.text.style.UnderlineSpan
+import android.util.Base64
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.infomaniak.lib.richhtmleditor.RichHtmlEditorWebView
 import com.urlxl.mail.mail.MailDraft
 import com.urlxl.mail.mail.MailOutcome
 import com.urlxl.mail.mail.MailRuntime
+import com.urlxl.mail.mail.OutgoingAttachment
 import com.urlxl.mail.mail.userFacingMessage
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -30,6 +37,8 @@ class ComposeActivity : AppCompatActivity() {
     private lateinit var bodyPlaceholder: android.view.View
     private lateinit var sendButton: Button
     private lateinit var cancelButton: Button
+    private lateinit var attachButton: Button
+    private lateinit var attachmentChips: ChipGroup
     private lateinit var boldChip: Chip
     private lateinit var italicChip: Chip
     private lateinit var underlineChip: Chip
@@ -37,6 +46,11 @@ class ComposeActivity : AppCompatActivity() {
     private lateinit var numberChip: Chip
     private lateinit var linkChip: Chip
     private val ioExecutor = Executors.newSingleThreadExecutor()
+    private val attachments = mutableListOf<OutgoingAttachment>()
+
+    private val pickAttachments = registerForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments(),
+    ) { uris -> uris?.forEach(::addAttachment) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +68,8 @@ class ComposeActivity : AppCompatActivity() {
         bodyPlaceholder = findViewById(R.id.composeBodyPlaceholder)
         sendButton = findViewById(R.id.composeSendButton)
         cancelButton = findViewById(R.id.composeCancelButton)
+        attachButton = findViewById(R.id.composeAttachButton)
+        attachmentChips = findViewById(R.id.composeAttachmentChips)
         boldChip = findViewById(R.id.composeBold)
         italicChip = findViewById(R.id.composeItalic)
         underlineChip = findViewById(R.id.composeUnderline)
@@ -98,6 +114,7 @@ class ComposeActivity : AppCompatActivity() {
 
         sendButton.setOnClickListener { sendEmail() }
         cancelButton.setOnClickListener { finish() }
+        attachButton.setOnClickListener { pickAttachments.launch(arrayOf("*/*")) }
         applyPrimaryButtonTheme(this, sendButton)
         applyGhostButtonTheme(this, cancelButton)
         applyToolbarChipsTheme()
@@ -116,6 +133,9 @@ class ComposeActivity : AppCompatActivity() {
         listOf(boldChip, italicChip, underlineChip, bulletChip, numberChip, linkChip).forEach {
             applyPillChipTheme(this, it)
         }
+        // The Attach button is borderless, so nothing tints its label to the active palette the way
+        // the pills tint themselves — set it explicitly or it renders as unreadable default-dark text.
+        attachButton.setTextColor(Color.parseColor(getStoredThemePalette(this).inkStrong))
     }
 
     /** Injects the active palette into the editor's WebView content so it doesn't render as a
@@ -171,6 +191,61 @@ class ComposeActivity : AppCompatActivity() {
         return TextUtils.htmlEncode(text).replace("\n", "<br>")
     }
 
+    /** Reads the picked document off the UI thread's ContentResolver, base64-encodes it, enforces
+     *  the 25 MB total cap (matching the backend), and renders a removable chip. */
+    private fun addAttachment(uri: Uri) {
+        val resolver = contentResolver
+        var name = "attachment"
+        var size = 0L
+        runCatching {
+            resolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIdx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (nameIdx >= 0 && !cursor.isNull(nameIdx)) name = cursor.getString(nameIdx)
+                    val sizeIdx = cursor.getColumnIndex(OpenableColumns.SIZE)
+                    if (sizeIdx >= 0 && !cursor.isNull(sizeIdx)) size = cursor.getLong(sizeIdx)
+                }
+            }
+        }
+        val bytes = runCatching { resolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
+        if (bytes == null) {
+            Toast.makeText(this, "Couldn't read $name", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val currentTotal = attachments.sumOf { it.size.toLong() }
+        if (currentTotal + bytes.size > MAX_ATTACHMENT_BYTES) {
+            Toast.makeText(this, getString(R.string.compose_attachments_too_large), Toast.LENGTH_LONG).show()
+            return
+        }
+        val mimeType = resolver.getType(uri) ?: "application/octet-stream"
+        attachments.add(
+            OutgoingAttachment(
+                name = name,
+                mimeType = mimeType,
+                dataBase64 = Base64.encodeToString(bytes, Base64.NO_WRAP),
+                size = bytes.size,
+            ),
+        )
+        renderAttachmentChips()
+    }
+
+    private fun renderAttachmentChips() {
+        attachmentChips.removeAllViews()
+        attachmentChips.visibility = if (attachments.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+        attachments.forEach { attachment ->
+            val chip = Chip(this).apply {
+                text = attachment.name
+                isCloseIconVisible = true
+                setOnCloseIconClickListener {
+                    attachments.remove(attachment)
+                    renderAttachmentChips()
+                }
+            }
+            applyPillChipTheme(this, chip)
+            attachmentChips.addView(chip)
+        }
+    }
+
     private fun sendEmail() {
         val to = toField.text.toString().trim()
         val subject = subjectField.text.toString().trim()
@@ -187,7 +262,7 @@ class ComposeActivity : AppCompatActivity() {
         bodyEditor.exportHtml { html ->
             ioExecutor.execute {
                 val outcome = MailRuntime.graph(this).repository.send(
-                    MailDraft(to = to, subject = subject, body = html, mode = "html"),
+                    MailDraft(to = to, subject = subject, body = html, mode = "html", attachments = attachments.toList()),
                 )
                 runOnUiThread {
                     when (outcome) {
@@ -219,5 +294,8 @@ class ComposeActivity : AppCompatActivity() {
         const val EXTRA_TO = "compose_to"
         const val EXTRA_SUBJECT = "compose_subject"
         const val EXTRA_BODY = "compose_body"
+
+        // Mirror of the backend maxMailAttachmentBytes (25 MB total decoded).
+        private const val MAX_ATTACHMENT_BYTES = 25L * 1024 * 1024
     }
 }

@@ -171,6 +171,41 @@ class RelayMailSource(
         return MailOutcome.BadRequest("Relay mode has no separate message-body endpoint")
     }
 
+    override fun listAttachments(messageId: String, folder: String): MailOutcome<List<AttachmentInfo>> {
+        val pairing = pairingProvider() ?: return MailOutcome.Unauthorized("Device is not paired")
+        val base = baseUrl(pairing, "/api/mail/attachments") ?: return MailOutcome.BadRequest("Server URL is not valid")
+        val url = authed(base, pairing).newBuilder()
+            .addQueryParameter("mailbox", folder)
+            .addQueryParameter("messageId", messageId)
+            .build()
+        return execute(Request.Builder().url(url).get().build()) { code, body ->
+            if (code != 200) return@execute mapErrorCode(code, body)
+            val parsed = runCatching { json.decodeFromString<RelayAttachmentListResponseDto>(body) }.getOrNull()
+                ?: return@execute MailOutcome.UpstreamFailure("Malformed attachment list response")
+            MailOutcome.Success(parsed.attachments.map { AttachmentInfo(it.index, it.name, it.mimeType, it.size) })
+        }
+    }
+
+    override fun downloadAttachment(messageId: String, folder: String, index: Int): MailOutcome<DownloadedAttachment> {
+        val pairing = pairingProvider() ?: return MailOutcome.Unauthorized("Device is not paired")
+        val base = baseUrl(pairing, "/api/mail/attachment") ?: return MailOutcome.BadRequest("Server URL is not valid")
+        val url = authed(base, pairing).newBuilder()
+            .addQueryParameter("mailbox", folder)
+            .addQueryParameter("messageId", messageId)
+            .addQueryParameter("index", index.toString())
+            .build()
+        // Binary response: read bytes and metadata headers inside the use block, not execute()'s
+        // string() path.
+        val result = callFactory.executeSync(Request.Builder().url(url).get().build()) { response ->
+            Triple(response.code, response.body?.bytes() ?: ByteArray(0), filenameFromDisposition(response.header("Content-Disposition")) to (response.header("Content-Type") ?: "application/octet-stream"))
+        }
+        val (code, bytes, meta) = result.getOrNull()
+            ?: return MailOutcome.UpstreamFailure(result.exceptionOrNull()?.message ?: "Network error")
+        if (code != 200) return mapErrorCode(code, bytes.toString(Charsets.UTF_8))
+        val (name, contentType) = meta
+        return MailOutcome.Success(DownloadedAttachment(name = name.ifBlank { "attachment" }, mimeType = contentType.substringBefore(';').trim(), bytes = bytes))
+    }
+
     private fun mutationOutcome(code: Int, rawBody: String): MailOutcome<Unit> =
         if (code == 200) MailOutcome.Success(Unit) else mapErrorCode(code, rawBody)
 
@@ -202,6 +237,19 @@ class RelayMailSource(
         .build()
 }
 
+/** Pulls the filename out of a Content-Disposition header, honoring both the RFC 5987 `filename*`
+ *  form and the plain quoted `filename=` form; empty when the header is absent or unparseable. */
+private fun filenameFromDisposition(header: String?): String {
+    if (header.isNullOrBlank()) return ""
+    Regex("filename\\*=(?:UTF-8'')?\"?([^\";]+)\"?", RegexOption.IGNORE_CASE).find(header)?.let {
+        return runCatching { java.net.URLDecoder.decode(it.groupValues[1], "UTF-8") }.getOrDefault(it.groupValues[1])
+    }
+    Regex("filename=\"?([^\";]+)\"?", RegexOption.IGNORE_CASE).find(header)?.let {
+        return it.groupValues[1]
+    }
+    return ""
+}
+
 private fun MailAction.wireValue(): String = when (this) {
     MailAction.DELETE -> "delete"
     MailAction.ARCHIVE -> "archive"
@@ -211,7 +259,15 @@ private fun MailAction.wireValue(): String = when (this) {
 }
 
 private fun MailDraft.toWireDto(): RelayMailRequestDto =
-    RelayMailRequestDto(to = to, cc = cc, bcc = bcc, subject = subject, body = body, mode = mode)
+    RelayMailRequestDto(
+        to = to,
+        cc = cc,
+        bcc = bcc,
+        subject = subject,
+        body = body,
+        mode = mode,
+        attachments = attachments.map { RelayAttachmentDto(name = it.name, mimeType = it.mimeType, dataBase64 = it.dataBase64) },
+    )
 
 private fun RelayEmailDto.toUiEmail(tab: String): Email {
     val emailLabel = label.ifBlank { tab }
@@ -228,6 +284,7 @@ private fun RelayEmailDto.toUiEmail(tab: String): Email {
         label = emailLabel,
         status = status,
         atUtc = atUtc,
+        hasAttachments = hasAttachments,
         sourceMode = "relay",
     )
 }

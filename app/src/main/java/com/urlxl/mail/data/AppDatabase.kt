@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PendingContactChangeEntity::class,
         DeviceContactLinkEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -32,6 +32,14 @@ abstract class AppDatabase : RoomDatabase() {
                     "CREATE TABLE IF NOT EXISTS `device_contact_links` (" +
                         "`uid` TEXT NOT NULL, `rawContactId` INTEGER NOT NULL, " +
                         "`deviceUpdatedAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`uid`))",
+                )
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `emails` ADD COLUMN `hasAttachments` INTEGER NOT NULL DEFAULT 0",
                 )
             }
         }
