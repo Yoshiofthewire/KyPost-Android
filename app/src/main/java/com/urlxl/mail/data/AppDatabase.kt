@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PendingContactChangeEntity::class,
         DeviceContactLinkEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -41,6 +41,23 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(
                     "ALTER TABLE `emails` ADD COLUMN `hasAttachments` INTEGER NOT NULL DEFAULT 0",
                 )
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `groupIDsJson` TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `photoRef` TEXT")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `pgpKey` TEXT")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `imsJson` TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `websitesJson` TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `relationsJson` TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `eventsJson` TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `phoneticGivenName` TEXT")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `phoneticFamilyName` TEXT")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `department` TEXT")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `customFieldsJson` TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `pronouns` TEXT")
             }
         }
     }

@@ -43,6 +43,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+    sourceSets {
+        // Room's MigrationTestHelper (used by the androidTest MigrationTest) reads exported
+        // schema JSON from assets at runtime.
+        getByName("androidTest").assets.srcDirs("$projectDir/schemas")
+    }
 
 }
 
@@ -89,6 +94,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.room.runtime)
+    androidTestImplementation(libs.androidx.room.testing)
 }
 
 ksp {
