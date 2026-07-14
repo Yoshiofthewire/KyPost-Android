@@ -59,6 +59,13 @@ described below.
 }
 ```
 
+**Response on error:**
+- **400 Bad Request:** The caller has no PGP identity configured yet (generate or import one first).
+- **401 Unauthorized:** Session cookie missing or expired.
+- **503 Service Unavailable:** The server's pairing subsystem isn't configured (a persistent ops
+  issue, not something a client-side retry will resolve — surface this distinctly from a transient
+  failure).
+
 **Usage:** Call this endpoint when the user taps "Show My QR Code" on the "My QR Code" screen.
 Render the returned `url` as a QR code. Refresh before `expiresAt` (or offer a pull-to-refresh
 gesture) to extend the TTL.
@@ -79,10 +86,11 @@ gesture) to extend the TTL.
 ```
 
 **Response on error:**
-- **403 Forbidden:** Token is invalid, expired, or already consumed.
+- **403 Forbidden:** Token is invalid, expired, or has a tampered/mismatched signature.
 - **404 Not Found:** The token owner has no PGP identity configured (backend still running, but
   user hasn't generated a key yet).
-- **503 Service Unavailable:** Backend temporary error (retry with exponential backoff).
+- **503 Service Unavailable:** The server's pairing subsystem isn't configured — a persistent ops
+  issue, not a transient failure; don't retry indefinitely.
 
 **Usage:** When the app's scanner decodes a `/api/pgp/qr/key` URL, extract the `t` parameter and
 GET this endpoint. Parse the response; on success, display the `fingerprint` to the user for
@@ -103,9 +111,11 @@ An authenticated screen (part of Settings or a dedicated encryption section) tha
    refresh.
 3. **Pull-to-refresh / refresh button:** Calls the endpoint again to mint a new token before the
    old one expires.
-4. **Error handling:** If the endpoint returns `404`, display a message like "You haven't set up
-   PGP encryption yet. Go to [Settings] to generate a key." If it returns `503`, show a retry
-   button. If it returns `401`, the session has expired — prompt to re-authenticate.
+4. **Error handling:** If the endpoint returns `400`, display a message like "You haven't set up
+   PGP encryption yet. Go to [Settings] to generate a key." If it returns `401`, the session has
+   expired — prompt to re-authenticate. If it returns `503`, this is a persistent server
+   configuration issue, not a transient one — show a static "unavailable" message rather than an
+   auto-retry loop.
 
 ### Screen 2: "Scan to Add Contact Key"
 
@@ -128,7 +138,9 @@ A screen with a QR/barcode scanner that:
    - If the GET fails with `403`, display "Token expired or invalid. Ask the other person to
      refresh their QR code and scan again."
    - If the GET fails with `404`, display "This person hasn't set up PGP encryption yet."
-   - If the GET fails with `503`, show a retry button.
+   - If the GET fails with `503`, this is a persistent server configuration issue on the other
+     person's server — don't offer an immediate retry as the fix; show a static "unavailable"
+     message instead.
    - If the sync `PUT /api/contacts/...` call fails, display a sync error (reuse the same UX
      pattern as the existing contact sync).
 
