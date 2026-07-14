@@ -32,3 +32,4 @@ app/google-services.json
 
 # Claude Code worktrees
 .claude/worktrees/
+.worktrees/
