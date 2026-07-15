@@ -33,6 +33,8 @@
     <string name="email_title">Email</string>
     <string name="email_from">From:</string>
     <string name="email_to">To:</string>
+    <string name="email_cc">Cc:</string>
+    <string name="email_bcc">Bcc:</string>
     <string name="email_subject_label">Subject:</string>
     <string name="email_body_label">Message:</string>
     <string name="reply">Reply</string>
@@ -70,6 +72,10 @@
     <string name="compose_link_dialog_url_hint">URL</string>
     <string name="compose_link_dialog_text_hint">Display text (optional)</string>
     <string name="compose_link_dialog_add">Add</string>
+    <string name="recipient_no_contacts_found">No contacts found</string>
+    <string name="recipient_duplicate_toast">%1$s is already added</string>
+    <string name="recipient_invalid_email_toast">Enter a valid email address</string>
+    <string name="compose_address_book_content_description">Open address book</string>
 
     <string name="push_pairing_title">Push Notifications</string>
     <string name="push_pairing_status_paired">Paired</string>
