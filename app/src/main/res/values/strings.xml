@@ -7,12 +7,9 @@
     <string name="inbox_heading">Llama Mail - %1$s</string>
     <string name="inbox_message">Emails refresh every 90 seconds while this screen is open</string>
 
-    <string name="settings_title">Email Settings</string>
-    <string name="connection_mode_title">Connection Mode</string>
     <string name="connection_mode_relay">Relay (paired device)</string>
-    <string name="connection_mode_pair_device">Pair this device</string>
-    <string name="connection_mode_relay_paired">Paired — mail is relayed through your Llama Mail server.</string>
     <string name="connection_mode_relay_not_paired">Not paired yet. Pair this device before using Relay mode.</string>
+    <string name="menu_pgp_key">PGP Key</string>
     <string name="menu_keywords">Keywords</string>
     <string name="menu_themes">Themes</string>
     <string name="menu_pairing">Pairing</string>
@@ -131,21 +128,18 @@
     <string name="contacts_device_sync_disabled_toast">Device contact sync disabled</string>
     <string name="contacts_pick_title">Select Contact</string>
 
-    <string name="pgp_qr_my_code_button">My QR Code</string>
+    <string name="pgp_key_signing_title">PGP Key Signing</string>
     <string name="pgp_qr_my_code_title">My QR Code</string>
     <string name="pgp_qr_my_code_intro">Let someone scan this code to add your PGP public key to their contacts.</string>
     <string name="pgp_qr_my_code_loading">Loading your QR code…</string>
     <string name="pgp_qr_my_code_expires">Expires: %1$s</string>
-    <string name="pgp_qr_my_code_refresh">Refresh</string>
-    <string name="pgp_qr_my_code_not_paired">Not paired yet. Pair this device in Settings first.</string>
+    <string name="pgp_qr_my_code_not_paired">Not paired yet. Pair this device via the Pairing menu first.</string>
     <string name="pgp_qr_my_code_no_identity">You haven\'t set up PGP encryption yet. Generate a PGP key on the web app, then come back here.</string>
-    <string name="pgp_qr_my_code_unauthorized">Device pairing expired or invalid — re-pair this device in Settings</string>
+    <string name="pgp_qr_my_code_unauthorized">Device pairing expired or invalid — re-pair this device via the Pairing menu</string>
     <string name="pgp_qr_my_code_unavailable">PGP key exchange is temporarily unavailable on the server. Please try again later.</string>
     <string name="pgp_qr_my_code_render_failed">Couldn\'t render the QR code. Try refreshing.</string>
 
-    <string name="pgp_qr_scan_button">Scan to Add Contact Key</string>
-    <string name="pgp_qr_scan_title">Scan to Add Contact Key</string>
-    <string name="pgp_qr_scan_instructions">Scan the other person\'s "My QR Code" screen to fetch their PGP public key.</string>
+    <string name="pgp_qr_scan_instructions">Scan the other person\'s PGP QR code to fetch their public key.</string>
     <string name="pgp_qr_scan_scan_button">Scan QR Code</string>
     <string name="pgp_qr_scan_scan_again_button">Scan Again</string>
     <string name="pgp_qr_scan_invalid">Invalid QR code. Please scan again.</string>

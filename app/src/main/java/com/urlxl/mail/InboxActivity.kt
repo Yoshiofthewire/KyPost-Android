@@ -29,6 +29,7 @@ import com.urlxl.mail.mail.MailOutcome
 import com.urlxl.mail.mail.MailRepository
 import com.urlxl.mail.mail.MailRuntime
 import com.urlxl.mail.mail.userFacingMessage
+import com.urlxl.mail.pgp.PgpKeyActivity
 import com.urlxl.mail.push.PushNotificationDispatcher
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -439,15 +440,20 @@ class InboxActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-        menu?.add(0, MENU_KEYWORDS, 0, R.string.menu_keywords)
-        menu?.add(0, MENU_THEMES, 1, R.string.menu_themes)
-        menu?.add(0, MENU_PUSH_PAIRING, 2, R.string.menu_pairing)
-        menu?.add(0, MENU_ABOUT, 3, R.string.menu_about)
+        menu?.add(0, MENU_PGP_KEY, 0, R.string.menu_pgp_key)
+        menu?.add(0, MENU_KEYWORDS, 1, R.string.menu_keywords)
+        menu?.add(0, MENU_THEMES, 2, R.string.menu_themes)
+        menu?.add(0, MENU_PUSH_PAIRING, 3, R.string.menu_pairing)
+        menu?.add(0, MENU_ABOUT, 4, R.string.menu_about)
         return super.onCreateOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            MENU_PGP_KEY -> {
+                startActivity(Intent(this, PgpKeyActivity::class.java))
+                true
+            }
             MENU_KEYWORDS -> {
                 startActivity(Intent(this, KeywordSettingsActivity::class.java))
                 true
@@ -635,10 +641,11 @@ class InboxActivity : AppCompatActivity() {
         private const val REFRESH_INTERVAL_MS = 90_000L
         private const val PENDING_MESSAGE_POLL_INTERVAL_MS = 3_000L
         private const val PENDING_MESSAGE_TIMEOUT_MS = 30_000L
-        private const val MENU_KEYWORDS = 0
-        private const val MENU_THEMES = 1
-        private const val MENU_PUSH_PAIRING = 2
-        private const val MENU_ABOUT = 3
+        private const val MENU_PGP_KEY = 0
+        private const val MENU_KEYWORDS = 1
+        private const val MENU_THEMES = 2
+        private const val MENU_PUSH_PAIRING = 3
+        private const val MENU_ABOUT = 4
         private val SWIPE_ARCHIVE_COLOR = Color.parseColor(COLOR_WARNING)
         private val SWIPE_DELETE_COLOR = Color.parseColor(COLOR_DANGER)
     }

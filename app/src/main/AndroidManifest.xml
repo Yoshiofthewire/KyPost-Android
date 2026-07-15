@@ -35,11 +35,6 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".SettingsActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
             android:name=".InboxActivity"
             android:exported="false"
             android:launchMode="singleTop" />
@@ -64,11 +59,7 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".pgp.MyQrCodeActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".pgp.ScanAddContactKeyActivity"
+            android:name=".pgp.PgpKeyActivity"
             android:exported="false" />
 
         <activity

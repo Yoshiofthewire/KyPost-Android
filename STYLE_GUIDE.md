@@ -56,7 +56,7 @@ text). This is already wired up on Android — `themes.xml` sets
 `@font/space_grotesk` as the app-wide default `fontFamily` (downloadable font, Google
 Fonts provider, zero APK weight), and `@font/ibm_plex_mono` is applied per-view where a
 monospace field is called for (`activity_push_pairing.xml`,
-`activity_scan_add_contact_key.xml`). Linux Mobile bundles both as `.ttf` assets directly
+`activity_pgp_key.xml`). Linux Mobile bundles both as `.ttf` assets directly
 (`fonts/Space_Grotesk`, `fonts/IBM_Plex_Mono`) since Qt has no Google-Fonts-provider
 equivalent. iOS references both by name too, but falls back to the system font today
 because the `.ttf`s aren't in the Xcode bundle yet (`AppFont.isFontAvailable` — see

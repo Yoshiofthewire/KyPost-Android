@@ -4,14 +4,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** Covers [ScanAddContactKeyActivity.parsePgpQrKeyUrl] — a pure function with no Android
- *  framework dependency, so it's plain-JVM testable like [PgpQrClientTest]'s coverage of
- *  [PgpQrClient]. No mocking framework, matching this repo's house style. */
-class ScanAddContactKeyActivityTest {
+/** Covers [PgpKeyActivity.parsePgpQrKeyUrl] — a pure function with no Android framework
+ *  dependency, so it's plain-JVM testable like [PgpQrClientTest]'s coverage of [PgpQrClient]. No
+ *  mocking framework, matching this repo's house style. */
+class PgpKeyActivityTest {
 
     @Test
     fun parsePgpQrKeyUrl_validUrl_extractsServerUrlAndToken() {
-        val parsed = ScanAddContactKeyActivity.parsePgpQrKeyUrl(
+        val parsed = PgpKeyActivity.parsePgpQrKeyUrl(
             "https://mail.example.com/api/pgp/qr/key?t=abc123",
         )
 
@@ -20,14 +20,14 @@ class ScanAddContactKeyActivityTest {
 
     @Test
     fun parsePgpQrKeyUrl_malformedString_returnsNull() {
-        val parsed = ScanAddContactKeyActivity.parsePgpQrKeyUrl("not a url at all")
+        val parsed = PgpKeyActivity.parsePgpQrKeyUrl("not a url at all")
 
         assertNull(parsed)
     }
 
     @Test
     fun parsePgpQrKeyUrl_wrongPath_returnsNull() {
-        val parsed = ScanAddContactKeyActivity.parsePgpQrKeyUrl(
+        val parsed = PgpKeyActivity.parsePgpQrKeyUrl(
             "https://mail.example.com/api/pgp/qr/token?t=abc123",
         )
 
@@ -36,7 +36,7 @@ class ScanAddContactKeyActivityTest {
 
     @Test
     fun parsePgpQrKeyUrl_missingTParam_returnsNull() {
-        val parsed = ScanAddContactKeyActivity.parsePgpQrKeyUrl(
+        val parsed = PgpKeyActivity.parsePgpQrKeyUrl(
             "https://mail.example.com/api/pgp/qr/key",
         )
 
@@ -45,7 +45,7 @@ class ScanAddContactKeyActivityTest {
 
     @Test
     fun parsePgpQrKeyUrl_blankTParam_returnsNull() {
-        val parsed = ScanAddContactKeyActivity.parsePgpQrKeyUrl(
+        val parsed = PgpKeyActivity.parsePgpQrKeyUrl(
             "https://mail.example.com/api/pgp/qr/key?t=",
         )
 
