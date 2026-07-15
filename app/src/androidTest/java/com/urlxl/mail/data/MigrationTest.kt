@@ -56,6 +56,40 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate4To5_createsGroupTables_andPreservesExistingContactRow() {
+        helper.createDatabase(TEST_DB, 4).apply {
+            execSQL(
+                "INSERT INTO contacts (uid, rev, fn, emailsJson, phonesJson, addressesJson) " +
+                    "VALUES ('uid-1', 1, 'Ada Lovelace', '[]', '[]', '[]')",
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 5, true, AppDatabase.MIGRATION_4_5)
+
+        migrated.query("SELECT * FROM contacts WHERE uid = 'uid-1'").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertEquals(true, cursor.moveToFirst())
+            assertEquals("Ada Lovelace", cursor.getString(cursor.getColumnIndexOrThrow("fn")))
+        }
+
+        migrated.execSQL("INSERT INTO `groups` (id, name, rev) VALUES ('group-1', 'Work', 3)")
+        migrated.query("SELECT * FROM `groups` WHERE id = 'group-1'").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertEquals(true, cursor.moveToFirst())
+            assertEquals("Work", cursor.getString(cursor.getColumnIndexOrThrow("name")))
+            assertEquals(3L, cursor.getLong(cursor.getColumnIndexOrThrow("rev")))
+        }
+
+        migrated.execSQL("INSERT INTO `group_links` (groupId, androidGroupRowId) VALUES ('group-1', 42)")
+        migrated.query("SELECT * FROM `group_links` WHERE groupId = 'group-1'").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertEquals(true, cursor.moveToFirst())
+            assertEquals(42L, cursor.getLong(cursor.getColumnIndexOrThrow("androidGroupRowId")))
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }

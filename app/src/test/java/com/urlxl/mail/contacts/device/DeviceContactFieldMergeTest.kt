@@ -1,5 +1,9 @@
 package com.urlxl.mail.contacts.device
 
+import com.urlxl.mail.contacts.ContactEventDto
+import com.urlxl.mail.contacts.ContactImDto
+import com.urlxl.mail.contacts.ContactRelationDto
+import com.urlxl.mail.contacts.ContactUrlDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -67,5 +71,137 @@ class DeviceContactFieldMergeTest {
         val roomEmails = listOf(com.urlxl.mail.contacts.ContactFieldDto(value = "room@example.com"))
         val deviceEmails = listOf(com.urlxl.mail.contacts.ContactFieldDto(value = "device@example.com"))
         assertEquals(deviceEmails, DeviceContactFieldMerge.mergeEmailList(roomEmails, deviceEmails, 100L, 200L))
+    }
+
+    // --- mergeImList ---
+
+    @Test
+    fun mergeImListBothEmpty() {
+        assertEquals(emptyList<ContactImDto>(), DeviceContactFieldMerge.mergeImList(emptyList(), emptyList(), null, null))
+    }
+
+    @Test
+    fun mergeImListRoomEmptyDevicePopulated() {
+        val deviceIms = listOf(ContactImDto(service = "signal", value = "+15551234567"))
+        assertEquals(deviceIms, DeviceContactFieldMerge.mergeImList(emptyList(), deviceIms, null, 100L))
+    }
+
+    @Test
+    fun mergeImListRoomPopulatedDeviceEmpty() {
+        val roomIms = listOf(ContactImDto(service = "signal", value = "+15551234567"))
+        assertEquals(roomIms, DeviceContactFieldMerge.mergeImList(roomIms, emptyList(), 100L, null))
+    }
+
+    @Test
+    fun mergeImListBothPopulatedRoomNewer() {
+        val roomIms = listOf(ContactImDto(service = "signal", value = "room"))
+        val deviceIms = listOf(ContactImDto(service = "signal", value = "device"))
+        assertEquals(roomIms, DeviceContactFieldMerge.mergeImList(roomIms, deviceIms, 200L, 100L))
+    }
+
+    @Test
+    fun mergeImListBothPopulatedDeviceNewer() {
+        val roomIms = listOf(ContactImDto(service = "signal", value = "room"))
+        val deviceIms = listOf(ContactImDto(service = "signal", value = "device"))
+        assertEquals(deviceIms, DeviceContactFieldMerge.mergeImList(roomIms, deviceIms, 100L, 200L))
+    }
+
+    // --- mergeWebsiteList ---
+
+    @Test
+    fun mergeWebsiteListBothEmpty() {
+        assertEquals(emptyList<ContactUrlDto>(), DeviceContactFieldMerge.mergeWebsiteList(emptyList(), emptyList(), null, null))
+    }
+
+    @Test
+    fun mergeWebsiteListRoomEmptyDevicePopulated() {
+        val deviceWebsites = listOf(ContactUrlDto(value = "https://example.com"))
+        assertEquals(deviceWebsites, DeviceContactFieldMerge.mergeWebsiteList(emptyList(), deviceWebsites, null, 100L))
+    }
+
+    @Test
+    fun mergeWebsiteListRoomPopulatedDeviceEmpty() {
+        val roomWebsites = listOf(ContactUrlDto(value = "https://example.com"))
+        assertEquals(roomWebsites, DeviceContactFieldMerge.mergeWebsiteList(roomWebsites, emptyList(), 100L, null))
+    }
+
+    @Test
+    fun mergeWebsiteListBothPopulatedRoomNewer() {
+        val roomWebsites = listOf(ContactUrlDto(value = "https://room.example.com"))
+        val deviceWebsites = listOf(ContactUrlDto(value = "https://device.example.com"))
+        assertEquals(roomWebsites, DeviceContactFieldMerge.mergeWebsiteList(roomWebsites, deviceWebsites, 200L, 100L))
+    }
+
+    @Test
+    fun mergeWebsiteListBothPopulatedDeviceNewer() {
+        val roomWebsites = listOf(ContactUrlDto(value = "https://room.example.com"))
+        val deviceWebsites = listOf(ContactUrlDto(value = "https://device.example.com"))
+        assertEquals(deviceWebsites, DeviceContactFieldMerge.mergeWebsiteList(roomWebsites, deviceWebsites, 100L, 200L))
+    }
+
+    // --- mergeRelationList ---
+
+    @Test
+    fun mergeRelationListBothEmpty() {
+        assertEquals(emptyList<ContactRelationDto>(), DeviceContactFieldMerge.mergeRelationList(emptyList(), emptyList(), null, null))
+    }
+
+    @Test
+    fun mergeRelationListRoomEmptyDevicePopulated() {
+        val deviceRelations = listOf(ContactRelationDto(label = "spouse", name = "Alex"))
+        assertEquals(deviceRelations, DeviceContactFieldMerge.mergeRelationList(emptyList(), deviceRelations, null, 100L))
+    }
+
+    @Test
+    fun mergeRelationListRoomPopulatedDeviceEmpty() {
+        val roomRelations = listOf(ContactRelationDto(label = "spouse", name = "Alex"))
+        assertEquals(roomRelations, DeviceContactFieldMerge.mergeRelationList(roomRelations, emptyList(), 100L, null))
+    }
+
+    @Test
+    fun mergeRelationListBothPopulatedRoomNewer() {
+        val roomRelations = listOf(ContactRelationDto(label = "spouse", name = "Room Person"))
+        val deviceRelations = listOf(ContactRelationDto(label = "spouse", name = "Device Person"))
+        assertEquals(roomRelations, DeviceContactFieldMerge.mergeRelationList(roomRelations, deviceRelations, 200L, 100L))
+    }
+
+    @Test
+    fun mergeRelationListBothPopulatedDeviceNewer() {
+        val roomRelations = listOf(ContactRelationDto(label = "spouse", name = "Room Person"))
+        val deviceRelations = listOf(ContactRelationDto(label = "spouse", name = "Device Person"))
+        assertEquals(deviceRelations, DeviceContactFieldMerge.mergeRelationList(roomRelations, deviceRelations, 100L, 200L))
+    }
+
+    // --- mergeEventList ---
+
+    @Test
+    fun mergeEventListBothEmpty() {
+        assertEquals(emptyList<ContactEventDto>(), DeviceContactFieldMerge.mergeEventList(emptyList(), emptyList(), null, null))
+    }
+
+    @Test
+    fun mergeEventListRoomEmptyDevicePopulated() {
+        val deviceEvents = listOf(ContactEventDto(label = "anniversary", date = "2020-06-01"))
+        assertEquals(deviceEvents, DeviceContactFieldMerge.mergeEventList(emptyList(), deviceEvents, null, 100L))
+    }
+
+    @Test
+    fun mergeEventListRoomPopulatedDeviceEmpty() {
+        val roomEvents = listOf(ContactEventDto(label = "anniversary", date = "2020-06-01"))
+        assertEquals(roomEvents, DeviceContactFieldMerge.mergeEventList(roomEvents, emptyList(), 100L, null))
+    }
+
+    @Test
+    fun mergeEventListBothPopulatedRoomNewer() {
+        val roomEvents = listOf(ContactEventDto(label = "anniversary", date = "2020-06-01"))
+        val deviceEvents = listOf(ContactEventDto(label = "anniversary", date = "2021-06-01"))
+        assertEquals(roomEvents, DeviceContactFieldMerge.mergeEventList(roomEvents, deviceEvents, 200L, 100L))
+    }
+
+    @Test
+    fun mergeEventListBothPopulatedDeviceNewer() {
+        val roomEvents = listOf(ContactEventDto(label = "anniversary", date = "2020-06-01"))
+        val deviceEvents = listOf(ContactEventDto(label = "anniversary", date = "2021-06-01"))
+        assertEquals(deviceEvents, DeviceContactFieldMerge.mergeEventList(roomEvents, deviceEvents, 100L, 200L))
     }
 }

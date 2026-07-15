@@ -15,6 +15,11 @@ class ContactsGraph(context: Context) {
         pairingProvider = { PushRuntime.graph(appContext).repository.state.first().pairing },
     )
     val coordinator = ContactSyncCoordinator(repository)
+    val groupSyncRepository = GroupSyncRepository(
+        db = DataRuntime.graph(appContext).database,
+        client = GroupsSyncClient(),
+        pairingProvider = { PushRuntime.graph(appContext).repository.state.first().pairing },
+    )
 }
 
 object ContactsRuntime {

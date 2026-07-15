@@ -13,8 +13,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ContactEntity::class,
         PendingContactChangeEntity::class,
         DeviceContactLinkEntity::class,
+        GroupEntity::class,
+        GroupLinkEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -24,6 +26,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun contactDao(): ContactDao
     abstract fun pendingContactChangeDao(): PendingContactChangeDao
     abstract fun deviceContactLinkDao(): DeviceContactLinkDao
+    abstract fun groupDao(): GroupDao
+    abstract fun groupLinkDao(): GroupLinkDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -58,6 +62,21 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE `contacts` ADD COLUMN `department` TEXT")
                 db.execSQL("ALTER TABLE `contacts` ADD COLUMN `customFieldsJson` TEXT NOT NULL DEFAULT '[]'")
                 db.execSQL("ALTER TABLE `contacts` ADD COLUMN `pronouns` TEXT")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `groups` (" +
+                        "`id` TEXT NOT NULL, `name` TEXT NOT NULL, `rev` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`id`))",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `group_links` (" +
+                        "`groupId` TEXT NOT NULL, `androidGroupRowId` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`groupId`))",
+                )
             }
         }
     }

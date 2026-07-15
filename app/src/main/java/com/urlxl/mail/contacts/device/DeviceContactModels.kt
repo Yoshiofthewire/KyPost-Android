@@ -1,8 +1,18 @@
 package com.urlxl.mail.contacts.device
 
 import com.urlxl.mail.contacts.ContactAddressDto
+import com.urlxl.mail.contacts.ContactEventDto
 import com.urlxl.mail.contacts.ContactFieldDto
+import com.urlxl.mail.contacts.ContactImDto
+import com.urlxl.mail.contacts.ContactRelationDto
+import com.urlxl.mail.contacts.ContactUrlDto
 
+/**
+ * `groupIDs` deliberately has no field here — group membership only ever flows Room -> device
+ * (see [DeviceGroupLinker]), never read back from `GroupMembership` rows into Room, per
+ * `Client_Contact_Update.md` Part 2 point 3. `pgpKey`/`pronouns`/`customFields` are excluded too:
+ * they have no `ContactsContract` data kind at all (Part 5) and stay Room-only.
+ */
 data class DeviceRawContactSnapshot(
     val rawContactId: Long,
     val contactId: Long,
@@ -17,6 +27,13 @@ data class DeviceRawContactSnapshot(
     val emails: List<ContactFieldDto>,
     val phones: List<ContactFieldDto>,
     val addresses: List<ContactAddressDto>,
+    val ims: List<ContactImDto> = emptyList(),
+    val websites: List<ContactUrlDto> = emptyList(),
+    val relations: List<ContactRelationDto> = emptyList(),
+    val events: List<ContactEventDto> = emptyList(),
+    val phoneticGivenName: String? = null,
+    val phoneticFamilyName: String? = null,
+    val department: String? = null,
 )
 
 data class DeviceContactCandidate(
@@ -30,6 +47,12 @@ data class DeviceContactCandidate(
     val notes: String?,
 )
 
+/**
+ * The write-intention shape ([com.urlxl.mail.contacts.device.DeviceContactMappers.toDeviceFieldSet]
+ * converts a [com.urlxl.mail.contacts.ContactDto] into this). Unlike [DeviceRawContactSnapshot],
+ * this *does* carry [groupIDs] — group membership is write-only (Room -> device), so it belongs on
+ * the write side, not the read side. `pgpKey`/`pronouns`/`customFields` are still excluded (Part 5).
+ */
 data class DeviceFieldSet(
     val fn: String,
     val givenName: String?,
@@ -45,4 +68,12 @@ data class DeviceFieldSet(
     val emails: List<ContactFieldDto>,
     val phones: List<ContactFieldDto>,
     val addresses: List<ContactAddressDto>,
+    val groupIDs: List<String> = emptyList(),
+    val ims: List<ContactImDto> = emptyList(),
+    val websites: List<ContactUrlDto> = emptyList(),
+    val relations: List<ContactRelationDto> = emptyList(),
+    val events: List<ContactEventDto> = emptyList(),
+    val phoneticGivenName: String? = null,
+    val phoneticFamilyName: String? = null,
+    val department: String? = null,
 )

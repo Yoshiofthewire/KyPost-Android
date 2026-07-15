@@ -13,6 +13,7 @@ class DeviceContactsGraph(context: Context) {
         context = appContext,
         db = DataRuntime.graph(appContext).database,
         syncRepository = ContactsRuntime.graph(appContext).repository,
+        groupSyncRepository = ContactsRuntime.graph(appContext).groupSyncRepository,
     )
     val coordinator = DeviceContactSyncCoordinator(repository, settings)
     val observer = DeviceContactObserver(appContext, coordinator)

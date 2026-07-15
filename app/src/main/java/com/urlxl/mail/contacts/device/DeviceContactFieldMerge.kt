@@ -1,7 +1,11 @@
 package com.urlxl.mail.contacts.device
 
 import com.urlxl.mail.contacts.ContactAddressDto
+import com.urlxl.mail.contacts.ContactEventDto
 import com.urlxl.mail.contacts.ContactFieldDto
+import com.urlxl.mail.contacts.ContactImDto
+import com.urlxl.mail.contacts.ContactRelationDto
+import com.urlxl.mail.contacts.ContactUrlDto
 
 object DeviceContactFieldMerge {
     fun <T> mergeField(
@@ -106,6 +110,74 @@ object DeviceContactFieldMerge {
         return when (winner) {
             Winner.DEVICE -> deviceAddresses
             else -> roomAddresses
+        }
+    }
+
+    fun mergeImList(
+        roomIms: List<ContactImDto>,
+        deviceIms: List<ContactImDto>,
+        roomUpdatedAtEpochMs: Long?,
+        deviceUpdatedAtEpochMs: Long?,
+    ): List<ContactImDto> {
+        if (roomIms.isEmpty() && deviceIms.isEmpty()) return emptyList()
+        if (roomIms.isEmpty()) return deviceIms
+        if (deviceIms.isEmpty()) return roomIms
+
+        val winner = DeviceContactConflictResolver.resolve(roomUpdatedAtEpochMs, deviceUpdatedAtEpochMs)
+        return when (winner) {
+            Winner.DEVICE -> deviceIms
+            else -> roomIms
+        }
+    }
+
+    fun mergeWebsiteList(
+        roomWebsites: List<ContactUrlDto>,
+        deviceWebsites: List<ContactUrlDto>,
+        roomUpdatedAtEpochMs: Long?,
+        deviceUpdatedAtEpochMs: Long?,
+    ): List<ContactUrlDto> {
+        if (roomWebsites.isEmpty() && deviceWebsites.isEmpty()) return emptyList()
+        if (roomWebsites.isEmpty()) return deviceWebsites
+        if (deviceWebsites.isEmpty()) return roomWebsites
+
+        val winner = DeviceContactConflictResolver.resolve(roomUpdatedAtEpochMs, deviceUpdatedAtEpochMs)
+        return when (winner) {
+            Winner.DEVICE -> deviceWebsites
+            else -> roomWebsites
+        }
+    }
+
+    fun mergeRelationList(
+        roomRelations: List<ContactRelationDto>,
+        deviceRelations: List<ContactRelationDto>,
+        roomUpdatedAtEpochMs: Long?,
+        deviceUpdatedAtEpochMs: Long?,
+    ): List<ContactRelationDto> {
+        if (roomRelations.isEmpty() && deviceRelations.isEmpty()) return emptyList()
+        if (roomRelations.isEmpty()) return deviceRelations
+        if (deviceRelations.isEmpty()) return roomRelations
+
+        val winner = DeviceContactConflictResolver.resolve(roomUpdatedAtEpochMs, deviceUpdatedAtEpochMs)
+        return when (winner) {
+            Winner.DEVICE -> deviceRelations
+            else -> roomRelations
+        }
+    }
+
+    fun mergeEventList(
+        roomEvents: List<ContactEventDto>,
+        deviceEvents: List<ContactEventDto>,
+        roomUpdatedAtEpochMs: Long?,
+        deviceUpdatedAtEpochMs: Long?,
+    ): List<ContactEventDto> {
+        if (roomEvents.isEmpty() && deviceEvents.isEmpty()) return emptyList()
+        if (roomEvents.isEmpty()) return deviceEvents
+        if (deviceEvents.isEmpty()) return roomEvents
+
+        val winner = DeviceContactConflictResolver.resolve(roomUpdatedAtEpochMs, deviceUpdatedAtEpochMs)
+        return when (winner) {
+            Winner.DEVICE -> deviceEvents
+            else -> roomEvents
         }
     }
 }

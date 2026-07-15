@@ -3,8 +3,13 @@ package com.urlxl.mail.contacts.device
 import android.content.Context
 import android.provider.ContactsContract
 import com.urlxl.mail.contacts.ContactDto
+import com.urlxl.mail.contacts.ContactEventDto
 import com.urlxl.mail.contacts.ContactFieldDto
+import com.urlxl.mail.contacts.ContactImDto
+import com.urlxl.mail.contacts.ContactRelationDto
 import com.urlxl.mail.contacts.ContactSyncRepository
+import com.urlxl.mail.contacts.ContactUrlDto
+import com.urlxl.mail.contacts.GroupSyncRepository
 import com.urlxl.mail.contacts.device.DeviceContactMappers.toContactDto
 import com.urlxl.mail.contacts.device.DeviceContactMappers.toDto
 import com.urlxl.mail.data.AppDatabase
@@ -17,10 +22,17 @@ class DeviceContactRepository(
     private val context: Context,
     private val db: AppDatabase,
     private val syncRepository: ContactSyncRepository,
+    private val groupSyncRepository: GroupSyncRepository,
 ) {
     private val contentResolver = context.contentResolver
+    private val groupLinker = DeviceGroupLinker(context, db)
 
     suspend fun syncAll() {
+        try {
+            groupSyncRepository.sync()
+        } catch (e: Exception) {
+            android.util.Log.e("DeviceContactSync", "Error refreshing groups cache", e)
+        }
         try {
             pullDeviceChangesForOwnAccount()
         } catch (e: Exception) {
@@ -131,10 +143,63 @@ class DeviceContactRepository(
                 deviceUpdatedAtEpochMs = deviceUpdatedAtEpochMs,
             )
 
+            val mergedIms = DeviceContactFieldMerge.mergeImList(
+                roomIms = roomDto.ims,
+                deviceIms = snapshot.ims,
+                roomUpdatedAtEpochMs = roomUpdatedAtEpochMs,
+                deviceUpdatedAtEpochMs = deviceUpdatedAtEpochMs,
+            )
+
+            val mergedWebsites = DeviceContactFieldMerge.mergeWebsiteList(
+                roomWebsites = roomDto.websites,
+                deviceWebsites = snapshot.websites,
+                roomUpdatedAtEpochMs = roomUpdatedAtEpochMs,
+                deviceUpdatedAtEpochMs = deviceUpdatedAtEpochMs,
+            )
+
+            val mergedRelations = DeviceContactFieldMerge.mergeRelationList(
+                roomRelations = roomDto.relations,
+                deviceRelations = snapshot.relations,
+                roomUpdatedAtEpochMs = roomUpdatedAtEpochMs,
+                deviceUpdatedAtEpochMs = deviceUpdatedAtEpochMs,
+            )
+
+            val mergedEvents = DeviceContactFieldMerge.mergeEventList(
+                roomEvents = roomDto.events,
+                deviceEvents = snapshot.events,
+                roomUpdatedAtEpochMs = roomUpdatedAtEpochMs,
+                deviceUpdatedAtEpochMs = deviceUpdatedAtEpochMs,
+            )
+
+            val mergedDepartment = DeviceContactFieldMerge.mergeStringField(
+                roomValue = roomDto.department,
+                deviceValue = snapshot.department,
+                roomUpdatedAtEpochMs = roomUpdatedAtEpochMs,
+                deviceUpdatedAtEpochMs = deviceUpdatedAtEpochMs,
+            )
+
+            val mergedPhoneticGivenName = DeviceContactFieldMerge.mergeStringField(
+                roomValue = roomDto.phoneticGivenName,
+                deviceValue = snapshot.phoneticGivenName,
+                roomUpdatedAtEpochMs = roomUpdatedAtEpochMs,
+                deviceUpdatedAtEpochMs = deviceUpdatedAtEpochMs,
+            )
+
+            val mergedPhoneticFamilyName = DeviceContactFieldMerge.mergeStringField(
+                roomValue = roomDto.phoneticFamilyName,
+                deviceValue = snapshot.phoneticFamilyName,
+                roomUpdatedAtEpochMs = roomUpdatedAtEpochMs,
+                deviceUpdatedAtEpochMs = deviceUpdatedAtEpochMs,
+            )
+
             val changed = mergedFn != roomDto.fn || mergedOrg != roomDto.org ||
                 mergedNotes != roomDto.notes || mergedBirthday != roomDto.birthday ||
                 mergedEmails != roomDto.emails || mergedPhones != roomDto.phones ||
-                mergedAddresses != roomDto.addresses
+                mergedAddresses != roomDto.addresses || mergedIms != roomDto.ims ||
+                mergedWebsites != roomDto.websites || mergedRelations != roomDto.relations ||
+                mergedEvents != roomDto.events || mergedDepartment != roomDto.department ||
+                mergedPhoneticGivenName != roomDto.phoneticGivenName ||
+                mergedPhoneticFamilyName != roomDto.phoneticFamilyName
 
             if (changed) {
                 val mergedDto = roomDto.copy(
@@ -145,6 +210,13 @@ class DeviceContactRepository(
                     emails = mergedEmails,
                     phones = mergedPhones,
                     addresses = mergedAddresses,
+                    ims = mergedIms,
+                    websites = mergedWebsites,
+                    relations = mergedRelations,
+                    events = mergedEvents,
+                    department = mergedDepartment,
+                    phoneticGivenName = mergedPhoneticGivenName,
+                    phoneticFamilyName = mergedPhoneticFamilyName,
                 )
                 syncRepository.queueUpdate(mergedDto)
             }
@@ -303,6 +375,8 @@ class DeviceContactRepository(
                 .withValue(ContactsContract.CommonDataKinds.StructuredName.MIDDLE_NAME, dto.middleName)
                 .withValue(ContactsContract.CommonDataKinds.StructuredName.PREFIX, dto.prefix)
                 .withValue(ContactsContract.CommonDataKinds.StructuredName.SUFFIX, dto.suffix)
+                .withValue(ContactsContract.CommonDataKinds.StructuredName.PHONETIC_GIVEN_NAME, dto.phoneticGivenName)
+                .withValue(ContactsContract.CommonDataKinds.StructuredName.PHONETIC_FAMILY_NAME, dto.phoneticFamilyName)
                 .build(),
         )
 
@@ -313,6 +387,7 @@ class DeviceContactRepository(
                     .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE)
                     .withValue(ContactsContract.CommonDataKinds.Organization.COMPANY, dto.org)
                     .withValue(ContactsContract.CommonDataKinds.Organization.TITLE, dto.title)
+                    .withValue(ContactsContract.CommonDataKinds.Organization.DEPARTMENT, dto.department)
                     .build(),
             )
         }
@@ -371,6 +446,77 @@ class DeviceContactRepository(
                     .withValue(ContactsContract.CommonDataKinds.StructuredPostal.POSTCODE, address.postalCode)
                     .withValue(ContactsContract.CommonDataKinds.StructuredPostal.COUNTRY, address.country)
                     .withValue(ContactsContract.CommonDataKinds.StructuredPostal.TYPE, address.label ?: "")
+                    .build(),
+            )
+        }
+
+        for (im in dto.ims) {
+            ops.add(
+                android.content.ContentProviderOperation.newInsert(dataUriBase)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactUriIndex)
+                    .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Im.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Im.DATA, im.value)
+                    .withValue(ContactsContract.CommonDataKinds.Im.PROTOCOL, ContactsContract.CommonDataKinds.Im.PROTOCOL_CUSTOM)
+                    .withValue(
+                        ContactsContract.CommonDataKinds.Im.CUSTOM_PROTOCOL,
+                        DeviceContactFieldCoding.imCustomProtocolLabel(im.service, im.label),
+                    )
+                    .build(),
+            )
+        }
+
+        for (website in dto.websites) {
+            ops.add(
+                android.content.ContentProviderOperation.newInsert(dataUriBase)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactUriIndex)
+                    .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Website.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Website.URL, website.value)
+                    .withValue(ContactsContract.CommonDataKinds.Website.TYPE, ContactsContract.CommonDataKinds.Website.TYPE_CUSTOM)
+                    .withValue(ContactsContract.CommonDataKinds.Website.LABEL, website.label)
+                    .build(),
+            )
+        }
+
+        for (relation in dto.relations) {
+            ops.add(
+                android.content.ContentProviderOperation.newInsert(dataUriBase)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactUriIndex)
+                    .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Relation.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Relation.NAME, relation.name)
+                    .withValue(ContactsContract.CommonDataKinds.Relation.TYPE, DeviceContactFieldCoding.relationType(relation.label))
+                    .withValue(ContactsContract.CommonDataKinds.Relation.LABEL, DeviceContactFieldCoding.relationCustomLabel(relation.label))
+                    .build(),
+            )
+        }
+
+        // Additional dates beyond birthday -- birthday keeps its own separate Event row above
+        // (same MIMETYPE, TYPE_BIRTHDAY), untouched by this loop.
+        for (event in dto.events) {
+            ops.add(
+                android.content.ContentProviderOperation.newInsert(dataUriBase)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactUriIndex)
+                    .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Event.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Event.START_DATE, event.date)
+                    .withValue(ContactsContract.CommonDataKinds.Event.TYPE, DeviceContactFieldCoding.eventType(event.label))
+                    .withValue(ContactsContract.CommonDataKinds.Event.LABEL, DeviceContactFieldCoding.eventCustomLabel(event.label))
+                    .build(),
+            )
+        }
+
+        // Group membership: find-or-create the on-device Groups row for each backend groupID
+        // this contact belongs to (see DeviceGroupLinker). Resolved before the batch is built
+        // since GROUP_ROW_ID is a plain value, not a withValueBackReference target. A groupID not
+        // yet present in the local groups cache is silently skipped -- it will be picked up on a
+        // future sync once GroupSyncRepository has pulled it down.
+        val androidGroupRowIds = dto.groupIDs.mapNotNull { groupId ->
+            db.groupDao().getById(groupId)?.let { group -> groupLinker.ensureAndroidGroupRowId(groupId, group.name) }
+        }
+        for (androidGroupRowId in androidGroupRowIds) {
+            ops.add(
+                android.content.ContentProviderOperation.newInsert(dataUriBase)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID, rawContactUriIndex)
+                    .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.GroupMembership.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.GroupMembership.GROUP_ROW_ID, androidGroupRowId)
                     .build(),
             )
         }
@@ -556,15 +702,23 @@ class DeviceContactRepository(
                 ContactsContract.Data.DATA5,
                 ContactsContract.Data.DATA6,
                 ContactsContract.Data.DATA7,
+                ContactsContract.Data.DATA9,
             )
 
             var fn = ""
             var org: String? = null
             var notes: String? = null
             var birthday: String? = null
+            var department: String? = null
+            var phoneticGivenName: String? = null
+            var phoneticFamilyName: String? = null
             val emails = mutableListOf<ContactFieldDto>()
             val phones = mutableListOf<ContactFieldDto>()
             val addresses = mutableListOf<com.urlxl.mail.contacts.ContactAddressDto>()
+            val ims = mutableListOf<ContactImDto>()
+            val websites = mutableListOf<ContactUrlDto>()
+            val relations = mutableListOf<ContactRelationDto>()
+            val events = mutableListOf<ContactEventDto>()
 
             contentResolver.query(
                 ContactsContract.Data.CONTENT_URI,
@@ -582,6 +736,7 @@ class DeviceContactRepository(
                     val data5 = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Data.DATA5))
                     val data6 = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Data.DATA6))
                     val data7 = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Data.DATA7))
+                    val data9 = cursor.getString(cursor.getColumnIndexOrThrow(ContactsContract.Data.DATA9))
 
                     when (mimeType) {
                         ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE -> {
@@ -592,6 +747,8 @@ class DeviceContactRepository(
                             val suffix = data6?.takeIf { it.isNotBlank() }
                             fn = listOfNotNull(prefix, given, middle, family, suffix).joinToString(" ")
                             if (fn.isBlank()) fn = data1
+                            phoneticGivenName = data7?.takeIf { it.isNotBlank() }
+                            phoneticFamilyName = data9?.takeIf { it.isNotBlank() }
                         }
 
                         ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE -> {
@@ -610,6 +767,7 @@ class DeviceContactRepository(
 
                         ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE -> {
                             org = data1.takeIf { it.isNotBlank() }
+                            department = data5?.takeIf { it.isNotBlank() }
                         }
 
                         ContactsContract.CommonDataKinds.Note.CONTENT_ITEM_TYPE -> {
@@ -619,6 +777,42 @@ class DeviceContactRepository(
                         ContactsContract.CommonDataKinds.Event.CONTENT_ITEM_TYPE -> {
                             if (data2 == "3") {
                                 birthday = data1
+                            } else {
+                                val typeInt = data2?.toIntOrNull()
+                                val label = DeviceContactFieldCoding.eventLabelFromType(typeInt)
+                                    ?: data3?.takeIf { it.isNotBlank() }
+                                events.add(ContactEventDto(label = label, date = data1))
+                            }
+                        }
+
+                        ContactsContract.CommonDataKinds.Im.CONTENT_ITEM_TYPE -> {
+                            if (data1.isNotBlank()) {
+                                // Every ims row this app writes uses PROTOCOL_CUSTOM + a resolved
+                                // display string (see DeviceContactFieldCoding.imCustomProtocolLabel)
+                                // rather than a recognizable service code, so reading it back can
+                                // only honestly reconstruct it as the "other" bucket (service = "")
+                                // with that string carried as the freeform label.
+                                val label = data6?.takeIf { it.isNotBlank() }
+                                ims.add(ContactImDto(service = "", label = label, value = data1))
+                            }
+                        }
+
+                        ContactsContract.CommonDataKinds.Website.CONTENT_ITEM_TYPE -> {
+                            if (data1.isNotBlank()) {
+                                val label = data3?.takeIf { it.isNotBlank() }
+                                websites.add(ContactUrlDto(label = label, value = data1))
+                            }
+                        }
+
+                        ContactsContract.CommonDataKinds.Relation.CONTENT_ITEM_TYPE -> {
+                            if (data1.isNotBlank()) {
+                                val typeInt = data2?.toIntOrNull()
+                                relations.add(
+                                    ContactRelationDto(
+                                        label = DeviceContactFieldCoding.relationLabelFromType(typeInt),
+                                        name = data1,
+                                    ),
+                                )
                             }
                         }
 
@@ -664,6 +858,13 @@ class DeviceContactRepository(
                 emails = emails,
                 phones = phones,
                 addresses = addresses,
+                ims = ims,
+                websites = websites,
+                relations = relations,
+                events = events,
+                phoneticGivenName = phoneticGivenName,
+                phoneticFamilyName = phoneticFamilyName,
+                department = department,
             )
         }
 }

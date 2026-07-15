@@ -2,46 +2,20 @@ package com.urlxl.mail.contacts.device
 
 import com.urlxl.mail.contacts.ContactDto
 import com.urlxl.mail.data.ContactEntity
-import kotlinx.serialization.json.Json
+import com.urlxl.mail.contacts.toDto as toCanonicalDto
 
 object DeviceContactMappers {
-    private val json = Json { ignoreUnknownKeys = true }
-
-    fun ContactEntity.toDto(): ContactDto {
-        val emails = runCatching {
-            json.decodeFromString<List<com.urlxl.mail.contacts.ContactFieldDto>>(emailsJson)
-        }.getOrDefault(emptyList())
-
-        val phones = runCatching {
-            json.decodeFromString<List<com.urlxl.mail.contacts.ContactFieldDto>>(phonesJson)
-        }.getOrDefault(emptyList())
-
-        val addresses = runCatching {
-            json.decodeFromString<List<com.urlxl.mail.contacts.ContactAddressDto>>(addressesJson)
-        }.getOrDefault(emptyList())
-
-        return ContactDto(
-            uid = uid,
-            rev = rev,
-            deleted = false,
-            createdAt = createdAt,
-            updatedAt = updatedAt,
-            fn = fn,
-            givenName = givenName,
-            familyName = familyName,
-            middleName = middleName,
-            prefix = prefix,
-            suffix = suffix,
-            nickname = nickname,
-            org = org,
-            title = title,
-            notes = notes,
-            birthday = birthday,
-            emails = emails,
-            phones = phones,
-            addresses = addresses,
-        )
-    }
+    /**
+     * Delegates to the canonical [com.urlxl.mail.contacts.toDto] (in `ContactMappers.kt`) rather
+     * than duplicating its JSON decode logic. This used to be its own partial implementation that
+     * only carried the pre-Task-2 fields (fn/org/notes/birthday/emails/phones/addresses) — since
+     * this function's result is the merge base in [DeviceContactRepository.pullDeviceChangesForOwnAccount]
+     * and [DeviceContactRepository.pushRoomChangesToDevice] (`roomDto.copy(...)`/`entity.toDto()`),
+     * that partial version silently dropped `groupIDs`/`photoRef`/`pgpKey`/`ims`/`websites`/
+     * `relations`/`events`/phonetic names/`department`/`customFields`/`pronouns` on every device
+     * sync pass — a real data-loss bug this task's device-provider wiring would otherwise inherit.
+     */
+    fun ContactEntity.toDto(): ContactDto = toCanonicalDto()
 
     fun DeviceRawContactSnapshot.toContactDto(uid: String, rev: Long): ContactDto {
         return ContactDto(
@@ -62,6 +36,13 @@ object DeviceContactMappers {
             emails = emails,
             phones = phones,
             addresses = addresses,
+            ims = ims,
+            websites = websites,
+            relations = relations,
+            events = events,
+            phoneticGivenName = phoneticGivenName,
+            phoneticFamilyName = phoneticFamilyName,
+            department = department,
         )
     }
 
@@ -81,6 +62,14 @@ object DeviceContactMappers {
             emails = emails,
             phones = phones,
             addresses = addresses,
+            groupIDs = groupIDs,
+            ims = ims,
+            websites = websites,
+            relations = relations,
+            events = events,
+            phoneticGivenName = phoneticGivenName,
+            phoneticFamilyName = phoneticFamilyName,
+            department = department,
         )
     }
 }
