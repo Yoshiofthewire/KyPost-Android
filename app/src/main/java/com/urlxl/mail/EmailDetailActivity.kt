@@ -131,6 +131,7 @@ class EmailDetailActivity : AppCompatActivity() {
             val content = (outcome as? MailOutcome.Success)?.value
             val bodyToRender = content?.html?.takeIf { it.isNotBlank() } ?: TextUtils.htmlEncode(emailPreview)
             val palette = getStoredThemePalette(this)
+            val monoFontFace = ibmPlexMonoFontFaceCss(this)
 
             val htmlContent = """
                 <html>
@@ -138,8 +139,9 @@ class EmailDetailActivity : AppCompatActivity() {
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1" />
                     <style>
+                        $monoFontFace
                         body {
-                            font-family: monospace;
+                            font-family: 'IBM Plex Mono', monospace;
                             font-size: 16px;
                             line-height: 1.5;
                             color: ${palette.inkStrong};

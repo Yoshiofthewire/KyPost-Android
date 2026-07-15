@@ -7,8 +7,10 @@ import android.view.ViewGroup
 import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 import android.widget.TextView
+import com.google.android.material.chip.Chip
 import com.urlxl.mail.R
 import com.urlxl.mail.ThemePalette
+import com.urlxl.mail.applyStatusBadgeTheme
 import com.urlxl.mail.bindAvatar
 import com.urlxl.mail.data.ContactEntity
 import com.urlxl.mail.getStoredThemePalette
@@ -24,6 +26,7 @@ class ContactAdapter(
         private val avatarView: TextView = view.findViewById(R.id.contactAvatar)
         private val nameView: TextView = view.findViewById(R.id.textViewContactName)
         private val detailView: TextView = view.findViewById(R.id.textViewContactDetail)
+        private val statusBadge: Chip = view.findViewById(R.id.contactStatusBadge)
 
         fun bind(contact: ContactEntity, palette: ThemePalette) {
             nameView.text = contact.fn
@@ -35,6 +38,12 @@ class ContactAdapter(
             cardView.setCardBackgroundColor(panel)
             nameView.setTextColor(Color.parseColor(palette.inkStrong))
             detailView.setTextColor(Color.parseColor(palette.ink))
+
+            val hasKey = !contact.pgpKey.isNullOrBlank()
+            statusBadge.setText(
+                if (hasKey) R.string.contact_status_secure_key else R.string.contact_status_no_key,
+            )
+            applyStatusBadgeTheme(itemView.context, statusBadge, active = hasKey)
 
             itemView.setOnClickListener { onContactClick(contact) }
         }

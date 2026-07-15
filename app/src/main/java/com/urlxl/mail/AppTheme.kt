@@ -210,13 +210,69 @@ fun applyDangerButtonTheme(context: Context, button: Button) {
 /** Success/"added" state for the address-book picker's TO/CC/BCC action chips — mirrors
  *  [applyDangerButtonTheme]'s stroke+fill shape (STYLE_GUIDE.md §4's danger-button pattern is the
  *  closest documented precedent for a colored actionable state) using [COLOR_SUCCESS_BORDER]/
- *  [COLOR_SUCCESS_TEXT] (STYLE_GUIDE.md §1) instead of the danger palette. */
-fun applySuccessChipTheme(context: Context, chip: com.google.android.material.chip.Chip) {
+ *  [COLOR_SUCCESS_TEXT] (STYLE_GUIDE.md §1) instead of the danger palette.
+ *
+ *  [animate], when true, cross-fades from the chip's current colors instead of snapping
+ *  (STYLE_GUIDE.md §5/§7 — 120ms). Only pass true from the actual tap that adds a recipient;
+ *  per-bind calls (recycled rows) must stay instant, so the default is false. */
+fun applySuccessChipTheme(
+    context: Context,
+    chip: com.google.android.material.chip.Chip,
+    animate: Boolean = false,
+) {
     val border = Color.parseColor(COLOR_SUCCESS_BORDER)
-    chip.chipBackgroundColor = android.content.res.ColorStateList.valueOf(withAlpha(border, 0.12f))
-    chip.chipStrokeColor = android.content.res.ColorStateList.valueOf(border)
+    val toBg = withAlpha(border, 0.12f)
+    val toStroke = border
+    val toText = Color.parseColor(COLOR_SUCCESS_TEXT)
     chip.chipStrokeWidth = 1f * context.resources.displayMetrics.density
-    chip.setTextColor(Color.parseColor(COLOR_SUCCESS_TEXT))
+    if (animate) {
+        animateChipColorTransition(
+            chip = chip,
+            fromBg = chip.chipBackgroundColor?.defaultColor ?: toBg,
+            toBg = toBg,
+            fromStroke = chip.chipStrokeColor?.defaultColor ?: toStroke,
+            toStroke = toStroke,
+            fromText = chip.textColors?.defaultColor ?: toText,
+            toText = toText,
+        )
+    } else {
+        chip.chipBackgroundColor = android.content.res.ColorStateList.valueOf(toBg)
+        chip.chipStrokeColor = android.content.res.ColorStateList.valueOf(toStroke)
+        chip.setTextColor(toText)
+    }
+}
+
+/** 120ms `FastOutSlowIn` cross-fade of a Chip's background/stroke/text colors — the shared motion
+ *  timing all four sibling apps converged on independently (STYLE_GUIDE.md §5). Used for the one
+ *  real color "snap" §7 calls out (the address-book chip's pill→success transition on tap); not
+ *  wired into [applyPillChipTheme]'s checked/unchecked toggle, since Chip's own state machine
+ *  already transitions that one and its colors are stateful `ColorStateList`s, not single values. */
+fun animateChipColorTransition(
+    chip: com.google.android.material.chip.Chip,
+    fromBg: Int,
+    toBg: Int,
+    fromStroke: Int,
+    toStroke: Int,
+    fromText: Int,
+    toText: Int,
+    durationMs: Long = 120L,
+) {
+    val evaluator = android.animation.ArgbEvaluator()
+    android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+        duration = durationMs
+        interpolator = androidx.interpolator.view.animation.FastOutSlowInInterpolator()
+        addUpdateListener { animator ->
+            val t = animator.animatedFraction
+            chip.chipBackgroundColor = android.content.res.ColorStateList.valueOf(
+                evaluator.evaluate(t, fromBg, toBg) as Int,
+            )
+            chip.chipStrokeColor = android.content.res.ColorStateList.valueOf(
+                evaluator.evaluate(t, fromStroke, toStroke) as Int,
+            )
+            chip.setTextColor(evaluator.evaluate(t, fromText, toText) as Int)
+        }
+        start()
+    }
 }
 
 /** Small uppercase, letter-spaced, 72%-opacity `inkStrong` label — mirrors web's
@@ -278,6 +334,40 @@ fun unreadDotDrawable(context: Context, sizeDp: Int = 8, color: Int? = null): Gr
     }
 }
 
+/** Pill-outline status badge with a small leading dot — STYLE_GUIDE.md §4's "status badge + dot"
+ *  component (iOS `StatusBadgeView.swift` / Linux `StatusBadge.qml`; previously missing on
+ *  Android, §7 item 2). [active] = fixed success green ([COLOR_SUCCESS_BORDER]/[COLOR_SUCCESS_TEXT],
+ *  §1); inactive = theme-derived `line`/`panel`/`ink`, never a fixed gray (§1: "inactive status
+ *  uses line/panel/ink from the active palette, not a fixed color"). Non-interactive — this reports
+ *  state, it doesn't toggle it. */
+fun applyStatusBadgeTheme(context: Context, chip: com.google.android.material.chip.Chip, active: Boolean) {
+    val palette = getStoredThemePalette(context)
+    val border: Int
+    val text: Int
+    val fill: Int
+    if (active) {
+        border = Color.parseColor(COLOR_SUCCESS_BORDER)
+        text = Color.parseColor(COLOR_SUCCESS_TEXT)
+        fill = withAlpha(border, 0.12f)
+    } else {
+        border = Color.parseColor(palette.line)
+        text = Color.parseColor(palette.ink)
+        fill = Color.parseColor(palette.panel)
+    }
+    chip.isCheckable = false
+    chip.isClickable = false
+    chip.isFocusable = false
+    chip.chipBackgroundColor = ColorStateList.valueOf(fill)
+    chip.chipStrokeColor = ColorStateList.valueOf(border)
+    chip.chipStrokeWidth = 1f * density
+    chip.setTextColor(text)
+    chip.textSize = 12f
+    chip.chipIcon = unreadDotDrawable(context, sizeDp = 7, color = border)
+    chip.chipIconTint = null
+    chip.chipIconSize = 7f * density
+    chip.isChipIconVisible = true
+}
+
 /** Circular, two-stop gradient avatar with initials — mirrors web's `.users-avatar` /
  *  `.contacts-avatar`. [sizeDp] is 34dp for list rows, 52dp for a detail header per the guide. */
 fun bindAvatar(context: Context, view: TextView, displayName: String, sizeDp: Int) {
@@ -327,6 +417,39 @@ fun applyEmptyStateBackground(context: Context, view: View) {
     }
     val padH = (16 * density).toInt()
     view.setPadding(padH, padH, padH, padH)
+}
+
+// Wraps raw ttf bytes into a @font-face CSS block. Pure/testable — split out from
+// [ibmPlexMonoFontFaceCss] so the encoding logic has a JVM unit test with no Android asset I/O.
+internal fun buildMonoFontFaceCss(fontBytes: ByteArray): String {
+    val base64 = java.util.Base64.getEncoder().encodeToString(fontBytes)
+    return "@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;" +
+        "src:url(data:font/ttf;base64,$base64) format('truetype');}"
+}
+
+private val monoFontFaceCssLock = Any()
+@Volatile private var cachedMonoFontFaceCss: String? = null
+
+/** Base64-inlined `@font-face` CSS for the bundled IBM Plex Mono Regular asset
+ * (`assets/fonts/IBMPlexMono-Regular.ttf`), for injection into [EmailDetailActivity]'s WebView
+ * HTML (STYLE_GUIDE.md §2/§7 item 1 — the email body previously rendered generic `monospace`).
+ * Inlined rather than referenced via a `file:///android_asset/` base URL: that WebView renders
+ * untrusted email HTML with JS enabled, and granting it `file://` origin access for a font is a
+ * real security cost for a small convenience gain. Read once per process and cached — the ttf is
+ * ~134KB, cheap to decode but no reason to repeat it on every email open.
+ * ponytail: Regular weight only — email body isn't bold/italic-styled. Upgrade path: add more
+ * weights + font-weight variants here if the renderer ever needs them. */
+fun ibmPlexMonoFontFaceCss(context: Context): String {
+    cachedMonoFontFaceCss?.let { return it }
+    synchronized(monoFontFaceCssLock) {
+        cachedMonoFontFaceCss?.let { return it }
+        val bytes = context.applicationContext.assets
+            .open("fonts/IBMPlexMono-Regular.ttf")
+            .use { it.readBytes() }
+        val css = buildMonoFontFaceCss(bytes)
+        cachedMonoFontFaceCss = css
+        return css
+    }
 }
 
 private fun tintOverflowIcon(activity: Activity, color: Int) {

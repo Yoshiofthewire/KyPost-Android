@@ -80,6 +80,8 @@
     <string name="address_book_action_to">TO</string>
     <string name="address_book_action_cc">CC</string>
     <string name="address_book_action_bcc">BCC</string>
+    <string name="contact_status_secure_key">Secure key</string>
+    <string name="contact_status_no_key">No key</string>
 
     <string name="push_pairing_title">Push Notifications</string>
     <string name="push_pairing_status_paired">Paired</string>

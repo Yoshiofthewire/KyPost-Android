@@ -66,7 +66,10 @@ class RecipientRowAdapter(
         chip.setOnClickListener {
             if (onPick(candidate, field)) {
                 added.add(candidate.uid to field)
-                notifyItemChanged(candidates.indexOf(candidate))
+                // Animate only the tapped chip (STYLE_GUIDE.md §5/§7 — 120ms). A later rebind of
+                // this row (scroll recycle) re-applies success instantly via bindActionButton
+                // above, so this doesn't need a notifyItemChanged to stay correct.
+                applySuccessChipTheme(chip.context, chip, animate = true)
             }
         }
     }

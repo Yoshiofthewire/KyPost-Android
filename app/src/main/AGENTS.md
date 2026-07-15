@@ -60,6 +60,18 @@ Owns production Android app code and resources.
   `android.disallowKotlinSourceSets=false` in `gradle.properties` to coexist with AGP's built-in
   Kotlin compilation (this project applies no separate `org.jetbrains.kotlin.android` plugin) — a
   known KSP/AGP-9 interaction (google/ksp#2729), not a general opt-out of that migration.
+- STYLE_GUIDE.md §7 gaps are closed: `EmailDetailActivity`'s WebView renders the body in the real
+  IBM Plex Mono font via a base64-inlined `@font-face` (`AppTheme.ibmPlexMonoFontFaceCss`, backed
+  by `assets/fonts/IBMPlexMono-Regular.ttf`) rather than a `file://` base URL, to avoid granting
+  untrusted email HTML `file://` origin access. `AppTheme.applyStatusBadgeTheme` is the
+  active/inactive status-badge+dot component (mirrors iOS `StatusBadgeView`/Linux `StatusBadge`);
+  its only current consumer is `ContactAdapter`, keyed off `ContactEntity.pgpKey` presence — the
+  address-book picker (`RecipientRowAdapter`/`RecipientCandidate`) does not project `pgpKey` and
+  wasn't wired up. `AppTheme.animateChipColorTransition` (120ms, `FastOutSlowIn`) is the shared
+  motion helper; only `applySuccessChipTheme`'s address-book "added" transition uses it
+  (`animate = true` param, default `false`) — `applyPillChipTheme`'s checked/unchecked toggle was
+  deliberately left un-animated (Chip's own state machine already transitions it; STYLE_GUIDE.md §7
+  doesn't require a full pass).
 
 # Work Guidance
 

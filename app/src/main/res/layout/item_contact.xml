@@ -47,6 +47,15 @@
 
         </LinearLayout>
 
+        <com.google.android.material.chip.Chip
+            android:id="@+id/contactStatusBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="8dp"
+            app:chipMinHeight="24dp"
+            app:ensureMinTouchTargetSize="false" />
+
     </LinearLayout>
 
 </androidx.cardview.widget.CardView>
