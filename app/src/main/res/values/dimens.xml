@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- STYLE_GUIDE.md §3 Card/panel radius — shared with iOS Shape.panel / Linux shapePanel (both 14). -->
+    <dimen name="card_corner_radius">14dp</dimen>
+</resources>
