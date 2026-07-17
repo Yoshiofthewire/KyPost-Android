@@ -118,7 +118,7 @@ class EmailDetailActivity : AppCompatActivity() {
         }
 
         webView.settings.apply {
-            javaScriptEnabled = true
+            javaScriptEnabled = false
             builtInZoomControls = true
             displayZoomControls = false
             useWideViewPort = true
