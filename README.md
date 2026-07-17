@@ -1,8 +1,19 @@
 # KyPost for Android
 
-This app includes a production push client flow for **Llama Labels notifications via native backend pairing + FCM**. Novu is not used on the client — the backend owns the Novu integration (if any) behind its own registration endpoint.
+KyPost is an Android email client with IMAP inbox read, SMTP send, and keyword-based inbox tabs driven by IMAP user flags. It also supports an alternate backend-relay connection mode (no IMAP/SMTP credentials on-device) and two-way contact sync against a self-hosted KyPost server, both authenticated via native-push pairing (`sub`/`hash`). Push notifications are delivered via native backend pairing + FCM — Novu is not used on the client; the backend owns the Novu integration (if any) behind its own registration endpoint.
 
-## What this build does
+## Features
+
+- **Mail**: IMAP inbox read and SMTP send (Manual IMAP mode), or a backend-relay mode that proxies mail through the paired KyPost server with no mail credentials stored on-device.
+- **Keyword tabs**: Inbox tabs driven by IMAP user flags (Manual IMAP) or server-provided tab/label fields (Relay mode), with tuning in the Keywords screen.
+- **Compose**: Recipient autocomplete on To/Cc/Bcc backed by local contacts, plus an address-book picker for adding recipients directly.
+- **Contacts**: Two-way contact sync against a self-hosted KyPost server, reachable from the Inbox overflow menu.
+- **PGP Key Signing**: A single screen shows your own PGP public-key QR code and lets you scan someone else's to save their key onto an existing contact.
+- **MFA push approval**: Push-based two-factor approve/deny for KyPost account logins, with an in-app fallback screen when OEM background restrictions block the action notification.
+- **Themes**: Multiple theme presets shared with the KyPost web app (default **Patina Ky**), selectable from the Themes screen.
+- **Push notifications**: System notifications plus in-app notification history for new mail, with a per-user delivery mode (`push` | `pull`, see below).
+
+## Push notification pairing
 
 - Pairs device from a desktop deep link / QR:
   `llamalabels://native-pair?sub=<subscriberId>&hash=<subscriberHash>&srv=<serverUrl>&reg=<registrationUrl>&pt=<pairingToken>`
