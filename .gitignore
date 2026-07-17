@@ -40,5 +40,7 @@ app/google-services.json
 *.hprof
 
 # Claude Code worktrees
+.claude/
 .claude/worktrees/
 .worktrees/
+.superpowers/
