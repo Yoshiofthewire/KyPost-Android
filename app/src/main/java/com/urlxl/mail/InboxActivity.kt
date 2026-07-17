@@ -102,7 +102,6 @@ class InboxActivity : AppCompatActivity() {
         applyInboxThemeChrome()
         setupRecyclerView()
         setupTabs()
-        setupHeaderFolderDropdown()
         setupBottomNav()
         setupSwipeGestures()
 
@@ -487,17 +486,9 @@ class InboxActivity : AppCompatActivity() {
             selectedTab = KeywordTabs.ALL
             applyFolderTitle()
             refreshInbox()
-            suppressFolderPickerReentry = true
-            bottomNav.selectedItemId = R.id.nav_inbox
-            suppressFolderPickerReentry = false
             true
         }
         popupMenu.show()
-    }
-
-    private fun setupHeaderFolderDropdown() {
-        val headerTitle = findViewById<View>(R.id.headerFolderTitle)
-        headerTitle.setOnClickListener { showFolderPickerPopup(headerTitle) }
     }
 
     private fun setupBottomNav() {
