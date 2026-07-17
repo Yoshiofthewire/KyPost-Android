@@ -54,6 +54,7 @@ class InboxActivity : AppCompatActivity() {
     private var lastAppliedThemeName: String = ""
 
     private var selectedTab = KeywordTabs.ALL
+    private var suppressFolderPickerReentry = false
     private var allEmails: List<Email> = emptyList()
     private var pendingMessageId: String? = null
     private var pendingSender: String? = null
@@ -469,40 +470,48 @@ class InboxActivity : AppCompatActivity() {
         }
     }
 
+    private fun showFolderPickerPopup(anchor: View) {
+        val popupMenu = PopupMenu(this, anchor)
+        popupMenu.menu.add(0, 0, 0, getString(R.string.nav_inbox))
+        popupMenu.menu.add(0, 1, 1, getString(R.string.nav_junk))
+        popupMenu.menu.add(0, 2, 2, getString(R.string.nav_trash))
+
+        popupMenu.setOnMenuItemClickListener { menuItem ->
+            val folder = when (menuItem.itemId) {
+                0 -> "INBOX"
+                1 -> "Junk"
+                2 -> "Trash"
+                else -> return@setOnMenuItemClickListener false
+            }
+            currentFolder = folder
+            selectedTab = KeywordTabs.ALL
+            applyFolderTitle()
+            refreshInbox()
+            suppressFolderPickerReentry = true
+            bottomNav.selectedItemId = R.id.nav_inbox
+            suppressFolderPickerReentry = false
+            true
+        }
+        popupMenu.show()
+    }
+
     private fun setupHeaderFolderDropdown() {
         val headerTitle = findViewById<View>(R.id.headerFolderTitle)
-        headerTitle.setOnClickListener {
-            val popupMenu = PopupMenu(this, headerTitle)
-            popupMenu.menu.add(0, 0, 0, getString(R.string.nav_inbox))
-            popupMenu.menu.add(0, 1, 1, getString(R.string.nav_junk))
-            popupMenu.menu.add(0, 2, 2, getString(R.string.nav_trash))
-
-            popupMenu.setOnMenuItemClickListener { menuItem ->
-                val folder = when (menuItem.itemId) {
-                    0 -> "INBOX"
-                    1 -> "Junk"
-                    2 -> "Trash"
-                    else -> return@setOnMenuItemClickListener false
-                }
-                currentFolder = folder
-                selectedTab = KeywordTabs.ALL
-                applyFolderTitle()
-                refreshInbox()
-                bottomNav.selectedItemId = R.id.nav_inbox
-                true
-            }
-            popupMenu.show()
-        }
+        headerTitle.setOnClickListener { showFolderPickerPopup(headerTitle) }
     }
 
     private fun setupBottomNav() {
+        fun openFolderPickerFromTab() {
+            val anchor = bottomNav.findViewById<View>(R.id.nav_inbox) ?: bottomNav
+            showFolderPickerPopup(anchor)
+        }
+
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_inbox -> {
-                    currentFolder = "INBOX"
-                    selectedTab = KeywordTabs.ALL
-                    applyFolderTitle()
-                    refreshInbox()
+                    if (!suppressFolderPickerReentry) {
+                        openFolderPickerFromTab()
+                    }
                     true
                 }
                 // Return false for items that launch a separate screen: the tap still fires the
@@ -521,14 +530,13 @@ class InboxActivity : AppCompatActivity() {
             }
         }
         bottomNav.setOnItemReselectedListener { item ->
-            if (item.itemId == R.id.nav_inbox) {
-                currentFolder = "INBOX"
-                selectedTab = KeywordTabs.ALL
-                applyFolderTitle()
-                refreshInbox()
+            if (item.itemId == R.id.nav_inbox && !suppressFolderPickerReentry) {
+                openFolderPickerFromTab()
             }
         }
+        suppressFolderPickerReentry = true
         bottomNav.selectedItemId = R.id.nav_inbox
+        suppressFolderPickerReentry = false
     }
 
     private fun setupSwipeGestures() {
