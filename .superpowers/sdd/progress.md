@@ -8,7 +8,7 @@
 ## Tasks
 
 - [x] Task 1: Add `isSelf` to `ContactDto`/`ContactEntity`/`ContactMappers`
-- [ ] Task 2: Room migration 5→6 for the `isSelf` column
+- [x] Task 2: Room migration 5→6 for the `isSelf` column
 - [ ] Task 3: Sort the self-contact to the top of the contact list
 - [ ] Task 4: Label the self-contact in the contact list UI
 - [ ] Task 5: Add `contactCard` to the PGP QR key response model
@@ -18,6 +18,17 @@
 ## Completed
 
 - Task 1: complete (commit f078a8a, spec ✅ quality ✅). Added `isSelf: Boolean = false` to `ContactDto`/`ContactEntity` (with `@ColumnInfo(defaultValue = "0")`), wired through `ContactMappers.kt`. Note: the implementer's subagent initially committed this to `main` in the original checkout instead of this worktree (same class of mistake as a prior plan) — recovered by cherry-picking the commit onto this branch and hard-resetting `main` back to `ef60e76`. Also discarded a stray `app/schemas/.../5.json` diff caused by KSP re-exporting the v5 schema mid-task (harmless — Task 2's version bump to 6 supersedes it).
+
+- Task 2: complete (commit 42c306f, spec ✅ quality ✅). Bumped `AppDatabase.version` to 6,
+  added `MIGRATION_5_6` (single `ALTER TABLE ... ADD COLUMN isSelf INTEGER NOT NULL DEFAULT 0`),
+  registered it in `DataRuntime.kt`, added a matching `MigrationTest` case, and a new
+  `app/schemas/.../6.json` with `5.json` left byte-identical. No Android device was reachable
+  this round (`adb devices` empty — likely a dropped wireless-debugging session), so the new
+  instrumented migration test compiled but could not actually run; reviewer hand-traced the SQL
+  and test fixture against the real v5 schema and judged it very likely to pass. **Re-run
+  `./gradlew connectedDebugAndroidTest --tests "com.urlxl.mail.data.MigrationTest"` once a
+  device is reachable** to close this out — same applies to Task 3's `ContactDaoOrderingTest`
+  and Task 7's manual verification, all of which need a connected device.
 
 ## Final Whole-Branch Review
 
