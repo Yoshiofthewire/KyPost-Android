@@ -19,6 +19,7 @@ import com.urlxl.mail.R
 import com.urlxl.mail.applyPrimaryButtonTheme
 import com.urlxl.mail.applyThemeToActivity
 import com.urlxl.mail.applyTopInsetWithHeader
+import com.urlxl.mail.contacts.ContactDto
 import com.urlxl.mail.contacts.ContactsListActivity
 import com.urlxl.mail.contacts.ContactsRuntime
 import com.urlxl.mail.contacts.toDto
@@ -255,6 +256,39 @@ class PgpKeyActivity : AppCompatActivity() {
                 .trimEnd('/')
             return ParsedPgpQrKeyUrl(serverUrl = serverUrl, token = token)
         }
+
+        /** Maps a scanned [PgpQrContactCardDto] to a creatable [ContactDto], for the "Create New
+         *  Contact" path in [showSaveChoiceDialog]. [fallbackName] (the scan's top-level `name`)
+         *  fills in `fn` when the card itself carries no name — `ContactDto.fn` must be non-blank
+         *  per Mobile_Contact_Sync.md, and a card's `fn` is `omitempty` server-side so it can be
+         *  legitimately absent. */
+        internal fun contactDtoFromCard(card: PgpQrContactCardDto, fallbackName: String, pgpKey: String): ContactDto =
+            ContactDto(
+                fn = card.fn?.takeIf { it.isNotBlank() } ?: fallbackName,
+                givenName = card.givenName,
+                familyName = card.familyName,
+                middleName = card.middleName,
+                prefix = card.prefix,
+                suffix = card.suffix,
+                nickname = card.nickname,
+                org = card.org,
+                title = card.title,
+                notes = card.notes,
+                birthday = card.birthday,
+                emails = card.emails,
+                phones = card.phones,
+                addresses = card.addresses,
+                ims = card.ims,
+                websites = card.websites,
+                relations = card.relations,
+                events = card.events,
+                phoneticGivenName = card.phoneticGivenName,
+                phoneticFamilyName = card.phoneticFamilyName,
+                department = card.department,
+                customFields = card.customFields,
+                pronouns = card.pronouns,
+                pgpKey = pgpKey,
+            )
     }
 }
 

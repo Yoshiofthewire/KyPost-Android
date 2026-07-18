@@ -1,5 +1,6 @@
 package com.urlxl.mail.pgp
 
+import com.urlxl.mail.contacts.ContactFieldDto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -50,5 +51,42 @@ class PgpKeyActivityTest {
         )
 
         assertNull(parsed)
+    }
+
+    @Test
+    fun contactDtoFromCard_mapsAllFields() {
+        val card = PgpQrContactCardDto(
+            fn = "Alice Example",
+            givenName = "Alice",
+            familyName = "Example",
+            org = "Example Corp",
+            title = "Engineer",
+            emails = listOf(ContactFieldDto(label = "work", value = "alice@example.com")),
+            phones = listOf(ContactFieldDto(value = "+1-555-0100")),
+            notes = "Met at conference",
+            pronouns = "she/her",
+        )
+
+        val dto = PgpKeyActivity.contactDtoFromCard(card, fallbackName = "Alice", pgpKey = "PUBKEY")
+
+        assertEquals("Alice Example", dto.fn)
+        assertEquals("Alice", dto.givenName)
+        assertEquals("Example", dto.familyName)
+        assertEquals("Example Corp", dto.org)
+        assertEquals("Engineer", dto.title)
+        assertEquals("alice@example.com", dto.emails.single().value)
+        assertEquals("+1-555-0100", dto.phones.single().value)
+        assertEquals("Met at conference", dto.notes)
+        assertEquals("she/her", dto.pronouns)
+        assertEquals("PUBKEY", dto.pgpKey)
+    }
+
+    @Test
+    fun contactDtoFromCard_blankCardName_fallsBackToScannedName() {
+        val card = PgpQrContactCardDto(fn = null)
+
+        val dto = PgpKeyActivity.contactDtoFromCard(card, fallbackName = "Alice", pgpKey = "PUBKEY")
+
+        assertEquals("Alice", dto.fn)
     }
 }
