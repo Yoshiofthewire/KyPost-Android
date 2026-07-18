@@ -13,7 +13,7 @@
 - [x] Task 4: Label the self-contact in the contact list UI
 - [x] Task 5: Add `contactCard` to the PGP QR key response model
 - [x] Task 6: Map a scanned `contactCard` to a `ContactDto`
-- [ ] Task 7: Offer "Create New Contact" when a scan includes a contact card
+- [x] Task 7: Offer "Create New Contact" when a scan includes a contact card
 
 ## Completed
 
@@ -52,6 +52,14 @@
   maps all 23 `PgpQrContactCardDto` fields to `ContactDto`, `fn` falls back to the scanned name
   when the card's own `fn` is null/blank. Plain-JVM tests, no device needed, both new
   `PgpKeyActivityTest` cases ran for real. `onFingerprintConfirmed` untouched (Task 7's job).
+
+- Task 7: complete (commit ad085f1, spec ✅ quality ✅). `onFingerprintConfirmed` now branches on
+  `pendingKey.contactCard`: null → unchanged straight-to-picker; non-null → `AlertDialog` with
+  "Create New Contact" (→ `createNewContactFromCard`, uses Task 6's `contactDtoFromCard` +
+  `queueCreate`/`syncNowAsync`) vs. "Add to Existing Contact" (→ existing picker flow, unchanged).
+  Reviewer independently confirmed dialog button callbacks are not swapped and `saveKeyToContact`
+  is untouched. No device for the brief's two-device manual walkthrough — **do that once devices
+  are reachable** (brief Step 4), same as the other device-dependent items below.
 
 ## Final Whole-Branch Review
 
