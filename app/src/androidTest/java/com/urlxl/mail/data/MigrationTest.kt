@@ -90,6 +90,26 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate5To6_addsIsSelfColumn_andPreservesExistingRow() {
+        helper.createDatabase(TEST_DB, 5).apply {
+            execSQL(
+                "INSERT INTO contacts (uid, rev, fn, emailsJson, phonesJson, addressesJson) " +
+                    "VALUES ('uid-1', 1, 'Ada Lovelace', '[]', '[]', '[]')",
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(TEST_DB, 6, true, AppDatabase.MIGRATION_5_6)
+
+        migrated.query("SELECT * FROM contacts WHERE uid = 'uid-1'").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertEquals(true, cursor.moveToFirst())
+            assertEquals("Ada Lovelace", cursor.getString(cursor.getColumnIndexOrThrow("fn")))
+            assertEquals(0, cursor.getInt(cursor.getColumnIndexOrThrow("isSelf")))
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }
