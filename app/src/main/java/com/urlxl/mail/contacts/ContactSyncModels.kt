@@ -36,6 +36,7 @@ data class ContactDto(
     val department: String? = null,
     val customFields: List<ContactCustomFieldDto> = emptyList(),
     val pronouns: String? = null,
+    val isSelf: Boolean = false,
 )
 
 @Serializable

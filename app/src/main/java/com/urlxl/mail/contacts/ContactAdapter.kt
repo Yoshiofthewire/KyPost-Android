@@ -30,7 +30,9 @@ class ContactAdapter(
 
         fun bind(contact: ContactEntity, palette: ThemePalette) {
             nameView.text = contact.fn
-            detailView.text = contact.org?.takeIf { it.isNotBlank() } ?: ""
+            val orgText = contact.org?.takeIf { it.isNotBlank() }
+            val selfLabel = if (contact.isSelf) itemView.context.getString(R.string.contact_self_label) else null
+            detailView.text = listOfNotNull(selfLabel, orgText).joinToString(" · ")
             detailView.visibility = if (detailView.text.isBlank()) View.GONE else View.VISIBLE
             bindAvatar(itemView.context, avatarView, contact.fn, sizeDp = 34)
 

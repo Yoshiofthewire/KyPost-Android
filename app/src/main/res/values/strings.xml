@@ -78,6 +78,7 @@
     <string name="address_book_action_bcc">BCC</string>
     <string name="contact_status_secure_key">Secure key</string>
     <string name="contact_status_no_key">No key</string>
+    <string name="contact_self_label">This is you</string>
 
     <string name="push_pairing_title">Push Notifications</string>
     <string name="push_pairing_status_paired">Paired</string>
@@ -154,5 +155,9 @@
     <string name="pgp_qr_scan_confirm_prompt">Confirm this fingerprint matches the other person\'s device before saving.</string>
     <string name="pgp_qr_scan_confirm_button">Confirm Match</string>
     <string name="pgp_qr_scan_saved">PGP key saved to contact</string>
+    <string name="pgp_qr_scan_save_choice_title">Save this contact</string>
+    <string name="pgp_qr_scan_save_new_button">Create New Contact</string>
+    <string name="pgp_qr_scan_save_existing_button">Add to Existing Contact</string>
+    <string name="pgp_qr_scan_saved_new">Contact created with PGP key</string>
     <string name="pgp_qr_scan_canceled">QR scan canceled or failed</string>
 </resources>

@@ -82,4 +82,15 @@ class ContactMappersTest {
         assertEquals(emptyList<ContactEventDto>(), dto.events)
         assertEquals(emptyList<ContactCustomFieldDto>(), dto.customFields)
     }
+
+    @Test
+    fun toEntity_toDto_roundTripsIsSelf() {
+        val selfDto = ContactDto(uid = "uid-self", fn = "Me", isSelf = true)
+        val otherDto = ContactDto(uid = "uid-other", fn = "Not Me", isSelf = false)
+
+        assertEquals(true, selfDto.toEntity().toDto().isSelf)
+        assertEquals(true, selfDto.toEntity().isSelf)
+        assertEquals(false, otherDto.toEntity().toDto().isSelf)
+        assertEquals(false, otherDto.toEntity().isSelf)
+    }
 }

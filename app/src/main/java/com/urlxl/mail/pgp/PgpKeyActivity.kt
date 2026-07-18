@@ -10,6 +10,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
@@ -19,6 +20,7 @@ import com.urlxl.mail.R
 import com.urlxl.mail.applyPrimaryButtonTheme
 import com.urlxl.mail.applyThemeToActivity
 import com.urlxl.mail.applyTopInsetWithHeader
+import com.urlxl.mail.contacts.ContactDto
 import com.urlxl.mail.contacts.ContactsListActivity
 import com.urlxl.mail.contacts.ContactsRuntime
 import com.urlxl.mail.contacts.toDto
@@ -37,8 +39,9 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  * no intermediate navigation screen.
  *
  * On a successful scan, fetches the key via [PgpQrClient.fetchKey] (unauthenticated — the token
- * is the credential), shows the fingerprint for out-of-band confirmation, then lets the user pick
- * an existing contact (via [ContactsListActivity] in pick mode) to save the key onto.
+ * is the credential), shows the fingerprint for out-of-band confirmation, then either creates a new
+ * contact from the included card (if present) or lets the user pick an existing contact (via
+ * [ContactsListActivity] in pick mode) to save the key onto.
  *
  * Saving does NOT go through a per-contact REST endpoint — this app never calls those. It follows
  * [com.urlxl.mail.contacts.ContactEditActivity.save]'s exact pattern instead: `queueUpdate` on the
@@ -210,10 +213,41 @@ class PgpKeyActivity : AppCompatActivity() {
     }
 
     private fun onFingerprintConfirmed() {
-        if (pendingKey == null) return
+        val key = pendingKey ?: return
+        if (key.contactCard != null) {
+            showSaveChoiceDialog(key)
+        } else {
+            launchContactPicker()
+        }
+    }
+
+    private fun showSaveChoiceDialog(key: PgpQrKeyDto) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.pgp_qr_scan_save_choice_title)
+            .setPositiveButton(R.string.pgp_qr_scan_save_new_button) { _, _ -> createNewContactFromCard(key) }
+            .setNegativeButton(R.string.pgp_qr_scan_save_existing_button) { _, _ -> launchContactPicker() }
+            .show()
+    }
+
+    private fun launchContactPicker() {
         pickContactLauncher.launch(
             Intent(this, ContactsListActivity::class.java).putExtra(ContactsListActivity.EXTRA_PICK_MODE, true),
         )
+    }
+
+    private fun createNewContactFromCard(key: PgpQrKeyDto) {
+        val card = key.contactCard ?: return
+        val dto = contactDtoFromCard(card, fallbackName = key.name, pgpKey = key.publicKey)
+        lifecycleScope.launch {
+            val graph = ContactsRuntime.graph(this@PgpKeyActivity)
+            graph.repository.queueCreate(dto)
+            graph.coordinator.syncNowAsync()
+
+            Toast.makeText(this@PgpKeyActivity, R.string.pgp_qr_scan_saved_new, Toast.LENGTH_SHORT).show()
+            resetConfirmationState()
+            scanStatusText.text = ""
+            scanButton.setText(R.string.pgp_qr_scan_scan_button)
+        }
     }
 
     private fun saveKeyToContact(uid: String) {
@@ -255,6 +289,39 @@ class PgpKeyActivity : AppCompatActivity() {
                 .trimEnd('/')
             return ParsedPgpQrKeyUrl(serverUrl = serverUrl, token = token)
         }
+
+        /** Maps a scanned [PgpQrContactCardDto] to a creatable [ContactDto], for the "Create New
+         *  Contact" path in [showSaveChoiceDialog]. [fallbackName] (the scan's top-level `name`)
+         *  fills in `fn` when the card itself carries no name — `ContactDto.fn` must be non-blank
+         *  per Mobile_Contact_Sync.md, and a card's `fn` is `omitempty` server-side so it can be
+         *  legitimately absent. */
+        internal fun contactDtoFromCard(card: PgpQrContactCardDto, fallbackName: String, pgpKey: String): ContactDto =
+            ContactDto(
+                fn = card.fn?.takeIf { it.isNotBlank() } ?: fallbackName.ifBlank { "Unknown" },
+                givenName = card.givenName,
+                familyName = card.familyName,
+                middleName = card.middleName,
+                prefix = card.prefix,
+                suffix = card.suffix,
+                nickname = card.nickname,
+                org = card.org,
+                title = card.title,
+                notes = card.notes,
+                birthday = card.birthday,
+                emails = card.emails,
+                phones = card.phones,
+                addresses = card.addresses,
+                ims = card.ims,
+                websites = card.websites,
+                relations = card.relations,
+                events = card.events,
+                phoneticGivenName = card.phoneticGivenName,
+                phoneticFamilyName = card.phoneticFamilyName,
+                department = card.department,
+                customFields = card.customFields,
+                pronouns = card.pronouns,
+                pgpKey = pgpKey,
+            )
     }
 }
 

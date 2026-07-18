@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 /** suspend/Flow-based, matching the coroutine convention already used by push/PushRepository. */
 @Dao
 interface ContactDao {
-    @Query("SELECT * FROM contacts ORDER BY fn COLLATE NOCASE")
+    @Query("SELECT * FROM contacts ORDER BY isSelf DESC, fn COLLATE NOCASE")
     fun observeAll(): Flow<List<ContactEntity>>
 
     @Query("SELECT * FROM contacts WHERE uid = :uid")

@@ -46,4 +46,5 @@ data class ContactEntity(
     val department: String? = null,
     @ColumnInfo(defaultValue = "[]") val customFieldsJson: String = "[]",
     val pronouns: String? = null,
+    @ColumnInfo(defaultValue = "0") val isSelf: Boolean = false,
 )

@@ -37,6 +37,7 @@ fun ContactDto.toEntity(): ContactEntity = ContactEntity(
     department = department,
     customFieldsJson = mapperJson.encodeToString(customFields),
     pronouns = pronouns,
+    isSelf = isSelf,
 )
 
 fun ContactEntity.toDto(): ContactDto = ContactDto(
@@ -70,4 +71,5 @@ fun ContactEntity.toDto(): ContactDto = ContactDto(
     department = department,
     customFields = runCatching { mapperJson.decodeFromString<List<ContactCustomFieldDto>>(customFieldsJson) }.getOrDefault(emptyList()),
     pronouns = pronouns,
+    isSelf = isSelf,
 )

@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         GroupEntity::class,
         GroupLinkEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -77,6 +77,12 @@ abstract class AppDatabase : RoomDatabase() {
                         "`groupId` TEXT NOT NULL, `androidGroupRowId` INTEGER NOT NULL, " +
                         "PRIMARY KEY(`groupId`))",
                 )
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `contacts` ADD COLUMN `isSelf` INTEGER NOT NULL DEFAULT 0")
             }
         }
     }
