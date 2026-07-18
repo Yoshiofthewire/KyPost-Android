@@ -63,7 +63,33 @@
 
 ## Final Whole-Branch Review
 
-(pending)
+Ready to merge: Yes (optional polish available, nothing blocking). Reviewer (opus) traced the
+full 7-task composition end-to-end: confirmed the sort feature's column→migration→query chain,
+confirmed the PGP-scan dialog calls `contactDtoFromCard` with correct arguments and maps all 23
+card fields, confirmed the fingerprint-confirmation trust gate is unchanged (no card data acted
+on before user confirmation), confirmed the no-card scan path is byte-identical to pre-feature
+behavior, confirmed the 5→6 migration/schema-export is correct and backward-compatible both ways
+(old installs, old servers with no `contactCard` in the response). No Critical/Important issues.
+
+Minor (optional, not blocking): (1) `contactDtoFromCard`'s `fn` fallback
+(`PgpKeyActivity.kt`) could theoretically emit a blank `fn` if both the card's `fn` and the
+scan's top-level `name` were blank — near-impossible in practice since a `contactCard` only
+exists for a self-contact (which always has an `fn`) sourced from the same record as `name`, but
+a defensive `.ifBlank { "Unknown" }` would make the mapping total. (2) `PgpKeyActivity`'s
+class-level KDoc is now slightly stale (doesn't mention the new create-new-contact branch).
+(3)/(4) carried forward from Task 3/7 task reviews (assertEquals-vs-assertTrue style nit;
+org-not-trimmed pre-existing behavior) — no escalation.
+
+**Outstanding before calling this production-verified:** no Android device was reachable during
+this entire implementation session (a wireless-debugging pairing dropped and needs the phone
+owner to re-approve it). Four items compiled but were never executed on a real device:
+- `MigrationTest.migrate5To6_addsIsSelfColumn_andPreservesExistingRow` (Task 2)
+- `ContactDaoOrderingTest.observeAll_sortsSelfContactFirst_thenByNameCaseInsensitive` (Task 3)
+- Manual "This is you" label walkthrough in the running app (Task 4)
+- Manual two-device PGP-scan walkthrough — dialog, new-contact creation, unchanged no-card
+  behavior (Task 7)
+All plain-JVM unit tests ran for real and are green (`./gradlew testDebugUnitTest`, 29/29 tasks
+successful as of commit 67b6adc).
 
 ## Prior plans (complete, superseded by this ledger)
 
