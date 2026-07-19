@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- app/src/main/res/layout/activity_contact_edit.xml -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/contactEditRoot"
     android:layout_width="match_parent"
@@ -15,81 +16,420 @@
             android:layout_width="52dp"
             android:layout_height="52dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="8dp"
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/contacts_name_label"
-            android:textSize="12sp"
-            android:layout_marginBottom="4dp" />
-
-        <EditText
-            android:id="@+id/editContactName"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/contacts_name_hint"
-            android:inputType="textPersonName"
-            android:layout_marginBottom="12dp" />
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="16dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/contacts_org_label"
-            android:textSize="12sp"
-            android:layout_marginBottom="4dp" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/contactEditSelfBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:visibility="gone"
+                app:chipMinHeight="24dp"
+                app:ensureMinTouchTargetSize="false"
+                xmlns:app="http://schemas.android.com/apk/res-auto" />
 
-        <EditText
-            android:id="@+id/editContactOrg"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/contactEditPgpBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:chipMinHeight="24dp"
+                app:ensureMinTouchTargetSize="false"
+                xmlns:app="http://schemas.android.com/apk/res-auto" />
+
+        </LinearLayout>
+
+        <com.urlxl.mail.contacts.ExpandableSectionView
+            android:id="@+id/sectionName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="8dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/contacts_email_label"
-            android:textSize="12sp"
-            android:layout_marginBottom="4dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_name_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
 
-        <EditText
-            android:id="@+id/editContactEmail"
+            <EditText
+                android:id="@+id/editContactName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/contacts_name_hint"
+                android:inputType="textPersonName"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_given_name_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactGivenName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_family_name_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactFamilyName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_middle_name_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactMiddleName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_prefix_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactPrefix"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_suffix_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactSuffix"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_nickname_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactNickname"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_phonetic_given_name_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactPhoneticGivenName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_phonetic_family_name_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactPhoneticFamilyName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_pronouns_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactPronouns"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:layout_marginBottom="4dp" />
+
+        </com.urlxl.mail.contacts.ExpandableSectionView>
+
+        <com.urlxl.mail.contacts.ExpandableSectionView
+            android:id="@+id/sectionWork"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textEmailAddress"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="8dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/contacts_phone_label"
-            android:textSize="12sp"
-            android:layout_marginBottom="4dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_org_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
 
-        <EditText
-            android:id="@+id/editContactPhone"
+            <EditText
+                android:id="@+id/editContactOrg"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_job_title_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_department_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactDepartment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:layout_marginBottom="4dp" />
+
+        </com.urlxl.mail.contacts.ExpandableSectionView>
+
+        <com.urlxl.mail.contacts.ExpandableSectionView
+            android:id="@+id/sectionContact"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="phone"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="8dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/contacts_notes_label"
-            android:textSize="12sp"
-            android:layout_marginBottom="4dp" />
+            <LinearLayout
+                android:id="@+id/emailRowsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
 
-        <EditText
-            android:id="@+id/editContactNotes"
+            <Button
+                android:id="@+id/btnAddEmail"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_emails_add"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:id="@+id/phoneRowsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <Button
+                android:id="@+id/btnAddPhone"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_phones_add"
+                android:layout_marginBottom="4dp" />
+
+        </com.urlxl.mail.contacts.ExpandableSectionView>
+
+        <com.urlxl.mail.contacts.ExpandableSectionView
+            android:id="@+id/sectionAddresses"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="textMultiLine"
-            android:minLines="3"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:id="@+id/addressRowsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <Button
+                android:id="@+id/btnAddAddress"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_addresses_add"
+                android:layout_marginBottom="4dp" />
+
+        </com.urlxl.mail.contacts.ExpandableSectionView>
+
+        <com.urlxl.mail.contacts.ExpandableSectionView
+            android:id="@+id/sectionOnline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:id="@+id/websiteRowsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <Button
+                android:id="@+id/btnAddWebsite"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_websites_add"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:id="@+id/imRowsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <Button
+                android:id="@+id/btnAddIm"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_ims_add"
+                android:layout_marginBottom="4dp" />
+
+        </com.urlxl.mail.contacts.ExpandableSectionView>
+
+        <com.urlxl.mail.contacts.ExpandableSectionView
+            android:id="@+id/sectionPersonal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_birthday_label"
+                android:textSize="12sp"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/editContactBirthday"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/contacts_birthday_hint"
+                android:focusable="false"
+                android:clickable="true"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:id="@+id/eventRowsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <Button
+                android:id="@+id/btnAddEvent"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_events_add"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:id="@+id/relationRowsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <Button
+                android:id="@+id/btnAddRelation"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_relations_add"
+                android:layout_marginBottom="4dp" />
+
+        </com.urlxl.mail.contacts.ExpandableSectionView>
+
+        <com.urlxl.mail.contacts.ExpandableSectionView
+            android:id="@+id/sectionNotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp">
+
+            <EditText
+                android:id="@+id/editContactNotes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textMultiLine"
+                android:minLines="3"
+                android:layout_marginBottom="4dp" />
+
+        </com.urlxl.mail.contacts.ExpandableSectionView>
+
+        <com.urlxl.mail.contacts.ExpandableSectionView
+            android:id="@+id/sectionOther"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:id="@+id/customFieldRowsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <Button
+                android:id="@+id/btnAddCustomField"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/contacts_customfields_add"
+                android:layout_marginBottom="4dp" />
+
+        </com.urlxl.mail.contacts.ExpandableSectionView>
 
         <Button
             android:id="@+id/btnSaveContact"

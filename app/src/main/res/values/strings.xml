@@ -123,6 +123,66 @@
     <string name="contacts_row_a_hint">A</string>
     <string name="contacts_row_b_hint">B</string>
 
+    <string name="contacts_section_name">Name</string>
+    <string name="contacts_given_name_label">Given name (optional)</string>
+    <string name="contacts_family_name_label">Family name (optional)</string>
+    <string name="contacts_middle_name_label">Middle name (optional)</string>
+    <string name="contacts_prefix_label">Prefix (optional)</string>
+    <string name="contacts_suffix_label">Suffix (optional)</string>
+    <string name="contacts_nickname_label">Nickname (optional)</string>
+    <string name="contacts_phonetic_given_name_label">Phonetic given name (optional)</string>
+    <string name="contacts_phonetic_family_name_label">Phonetic family name (optional)</string>
+    <string name="contacts_pronouns_label">Pronouns (optional)</string>
+
+    <string name="contacts_section_work">Work</string>
+    <string name="contacts_job_title_label">Job title (optional)</string>
+    <string name="contacts_department_label">Department (optional)</string>
+
+    <string name="contacts_section_contact">Contact</string>
+    <string name="contacts_emails_add">+ Add email</string>
+    <string name="contacts_phones_add">+ Add phone</string>
+    <string name="contacts_email_row_label_hint">Label (e.g. Home, Work)</string>
+    <string name="contacts_email_row_value_hint">Email address</string>
+    <string name="contacts_phone_row_label_hint">Label (e.g. Home, Work, Mobile)</string>
+    <string name="contacts_phone_row_value_hint">Phone number</string>
+
+    <string name="contacts_section_addresses">Addresses</string>
+    <string name="contacts_addresses_add">+ Add address</string>
+    <string name="contacts_address_label_hint">Label (e.g. Home, Work)</string>
+    <string name="contacts_address_street_hint">Street</string>
+    <string name="contacts_address_city_hint">City</string>
+    <string name="contacts_address_region_hint">State / Region</string>
+    <string name="contacts_address_postal_code_hint">Postal code</string>
+    <string name="contacts_address_country_hint">Country</string>
+
+    <string name="contacts_section_online">Online</string>
+    <string name="contacts_websites_add">+ Add website</string>
+    <string name="contacts_website_row_label_hint">Label (e.g. Personal, Blog)</string>
+    <string name="contacts_website_row_value_hint">https://…</string>
+    <string name="contacts_ims_add">+ Add IM</string>
+    <string name="contacts_im_service_hint">Service (e.g. Signal, Telegram)</string>
+    <string name="contacts_im_label_hint">Label (optional)</string>
+    <string name="contacts_im_value_hint">Username / handle</string>
+
+    <string name="contacts_section_personal">Personal</string>
+    <string name="contacts_birthday_label">Birthday (optional)</string>
+    <string name="contacts_birthday_hint">Tap to set date</string>
+    <string name="contacts_events_add">+ Add event</string>
+    <string name="contacts_event_label_hint">Label (e.g. Anniversary)</string>
+    <string name="contacts_event_date_hint">Tap to set date</string>
+    <string name="contacts_relations_add">+ Add relation</string>
+    <string name="contacts_relation_row_label_hint">Relationship (e.g. Spouse, Sibling)</string>
+    <string name="contacts_relation_row_value_hint">Name</string>
+
+    <string name="contacts_section_notes">Notes</string>
+
+    <string name="contacts_section_other">Other</string>
+    <string name="contacts_customfields_add">+ Add custom field</string>
+    <string name="contacts_customfield_row_label_hint">Field name</string>
+    <string name="contacts_customfield_row_value_hint">Value</string>
+
+    <string name="contacts_pgp_badge_visible">PGP key on file</string>
+
     <string name="loading_emails">Syncing emails…</string>
     <string name="finding_email">Finding new email…</string>
     <string name="no_archive_folders">No archive folders found</string>
