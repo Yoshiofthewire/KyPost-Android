@@ -119,6 +119,9 @@
     <string name="contacts_email_label">Email (optional)</string>
     <string name="contacts_phone_label">Phone (optional)</string>
     <string name="contacts_notes_label">Notes (optional)</string>
+    <string name="contacts_field_remove_cd">Remove</string>
+    <string name="contacts_row_a_hint">A</string>
+    <string name="contacts_row_b_hint">B</string>
 
     <string name="loading_emails">Syncing emails…</string>
     <string name="finding_email">Finding new email…</string>
