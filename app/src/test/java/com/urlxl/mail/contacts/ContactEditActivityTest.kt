@@ -48,65 +48,130 @@ class ContactEditActivityTest {
     )
 
     @Test
-    fun mergedContactDto_preservesEveryFieldTheEditorHasNoUiFor() {
+    fun mergedContactDto_editableFields_reflectEdits() {
         val result = mergedContactDto(
             loaded = loaded,
             uid = loaded.uid,
             rev = loaded.rev,
             fn = "New Name",
+            givenName = "New",
+            familyName = "Surname",
+            middleName = "Mid",
+            prefix = "Mx.",
+            suffix = "III",
+            nickname = "Newy",
             org = "New Org",
+            title = "New Title",
+            department = "Sales",
             notes = "New notes",
+            birthday = "1991-02-02",
             emails = listOf(ContactFieldDto(value = "new@example.com")),
             phones = listOf(ContactFieldDto(value = "555-1111")),
+            addresses = listOf(ContactAddressDto(city = "Shelbyville")),
+            ims = listOf(ContactImDto(service = "telegram", value = "new-im")),
+            websites = listOf(ContactUrlDto(value = "https://new.example.com")),
+            relations = listOf(ContactRelationDto(name = "Sibling")),
+            events = listOf(ContactEventDto(date = "2021-03-03")),
+            phoneticGivenName = "New-uh",
+            phoneticFamilyName = "Sur-name",
+            customFields = listOf(ContactCustomFieldDto(label = "New Custom", value = "New Value")),
+            pronouns = "she/her",
         )
 
-        // Fields the editor's form actually exposes: reflect the new, edited values.
         assertEquals("New Name", result.fn)
+        assertEquals("New", result.givenName)
+        assertEquals("Surname", result.familyName)
+        assertEquals("Mid", result.middleName)
+        assertEquals("Mx.", result.prefix)
+        assertEquals("III", result.suffix)
+        assertEquals("Newy", result.nickname)
         assertEquals("New Org", result.org)
+        assertEquals("New Title", result.title)
+        assertEquals("Sales", result.department)
         assertEquals("New notes", result.notes)
+        assertEquals("1991-02-02", result.birthday)
         assertEquals(listOf(ContactFieldDto(value = "new@example.com")), result.emails)
         assertEquals(listOf(ContactFieldDto(value = "555-1111")), result.phones)
+        assertEquals(listOf(ContactAddressDto(city = "Shelbyville")), result.addresses)
+        assertEquals(listOf(ContactImDto(service = "telegram", value = "new-im")), result.ims)
+        assertEquals(listOf(ContactUrlDto(value = "https://new.example.com")), result.websites)
+        assertEquals(listOf(ContactRelationDto(name = "Sibling")), result.relations)
+        assertEquals(listOf(ContactEventDto(date = "2021-03-03")), result.events)
+        assertEquals("New-uh", result.phoneticGivenName)
+        assertEquals("Sur-name", result.phoneticFamilyName)
+        assertEquals(listOf(ContactCustomFieldDto(label = "New Custom", value = "New Value")), result.customFields)
+        assertEquals("she/her", result.pronouns)
+    }
 
-        // Every other field: must survive untouched — this is exactly what used to get wiped.
-        assertEquals(loaded.givenName, result.givenName)
-        assertEquals(loaded.familyName, result.familyName)
-        assertEquals(loaded.middleName, result.middleName)
-        assertEquals(loaded.prefix, result.prefix)
-        assertEquals(loaded.suffix, result.suffix)
-        assertEquals(loaded.nickname, result.nickname)
-        assertEquals(loaded.title, result.title)
-        assertEquals(loaded.birthday, result.birthday)
-        assertEquals(loaded.addresses, result.addresses)
+    @Test
+    fun mergedContactDto_deferredAndReadOnlyFields_alwaysSurviveUntouched() {
+        val result = mergedContactDto(
+            loaded = loaded,
+            uid = loaded.uid,
+            rev = loaded.rev,
+            fn = "New Name",
+            givenName = null,
+            familyName = null,
+            middleName = null,
+            prefix = null,
+            suffix = null,
+            nickname = null,
+            org = null,
+            title = null,
+            department = null,
+            notes = null,
+            birthday = null,
+            emails = emptyList(),
+            phones = emptyList(),
+            addresses = emptyList(),
+            ims = emptyList(),
+            websites = emptyList(),
+            relations = emptyList(),
+            events = emptyList(),
+            phoneticGivenName = null,
+            phoneticFamilyName = null,
+            customFields = emptyList(),
+            pronouns = null,
+        )
+
+        // Never editable in ContactEditActivity — must survive regardless of what else changed.
         assertEquals(loaded.groupIDs, result.groupIDs)
         assertEquals(loaded.photoRef, result.photoRef)
         assertEquals(loaded.pgpKey, result.pgpKey)
-        assertEquals(loaded.ims, result.ims)
-        assertEquals(loaded.websites, result.websites)
-        assertEquals(loaded.relations, result.relations)
-        assertEquals(loaded.events, result.events)
-        assertEquals(loaded.phoneticGivenName, result.phoneticGivenName)
-        assertEquals(loaded.phoneticFamilyName, result.phoneticFamilyName)
-        assertEquals(loaded.department, result.department)
-        assertEquals(loaded.customFields, result.customFields)
-        assertEquals(loaded.pronouns, result.pronouns)
         assertEquals(loaded.isSelf, result.isSelf)
     }
 
     @Test
     fun mergedContactDto_newContact_leavesUnsetFieldsAtDefaults() {
-        // No prior contact to preserve fields from — ContactDto()'s all-default value is correct.
         val result = mergedContactDto(
             loaded = ContactDto(),
             uid = "",
             rev = 0,
             fn = "Brand New",
+            givenName = null,
+            familyName = null,
+            middleName = null,
+            prefix = null,
+            suffix = null,
+            nickname = null,
             org = null,
+            title = null,
+            department = null,
             notes = null,
+            birthday = null,
             emails = emptyList(),
             phones = emptyList(),
+            addresses = emptyList(),
+            ims = emptyList(),
+            websites = emptyList(),
+            relations = emptyList(),
+            events = emptyList(),
+            phoneticGivenName = null,
+            phoneticFamilyName = null,
+            customFields = emptyList(),
+            pronouns = null,
         )
 
-        assertEquals("Brand New", result.fn)
         assertEquals(ContactDto(fn = "Brand New"), result)
     }
 }
