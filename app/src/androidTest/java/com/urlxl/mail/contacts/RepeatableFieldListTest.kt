@@ -1,6 +1,7 @@
 // app/src/androidTest/java/com/urlxl/mail/contacts/RepeatableFieldListTest.kt
 package com.urlxl.mail.contacts
 
+import android.view.ContextThemeWrapper
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -23,7 +24,10 @@ class RepeatableFieldListTest {
 
     @Before
     fun setUp() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val context = ContextThemeWrapper(
+            InstrumentationRegistry.getInstrumentation().targetContext,
+            R.style.Theme_LlamaMailForAndroid,
+        )
         container = LinearLayout(context)
         addButton = Button(context)
         changeCount = 0
