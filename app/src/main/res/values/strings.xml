@@ -86,7 +86,9 @@
     <string name="push_pairing_status_paired">Paired</string>
     <string name="push_pairing_status_not_paired">Not paired</string>
     <string name="push_pairing_resync">Re-sync token</string>
-    <string name="push_pairing_clear">Clear pairing</string>
+    <string name="push_pairing_unpair">Unpair device</string>
+    <string name="push_pairing_unpair_confirm_title">Unpair this device?</string>
+    <string name="push_pairing_unpair_confirm_message">This removes the device from your account\'s paired devices on the server and clears its local pairing. You\'ll need to scan a new QR code to pair again.</string>
     <string name="push_pairing_latest_title">Latest push preview</string>
     <string name="push_pairing_history_title">Notification history</string>
     <string name="push_pairing_history_empty">No push notifications received yet</string>

@@ -109,12 +109,14 @@ class PgpKeyActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             val pairing = PushRuntime.graph(this@PgpKeyActivity).repository.state.first().pairing
-            if (pairing == null) {
+            val deviceId = pairing?.deviceId
+            val deviceSecret = pairing?.deviceSecret
+            if (pairing == null || deviceId.isNullOrBlank() || deviceSecret.isNullOrBlank()) {
                 qrStatusText.text = getString(R.string.pgp_qr_my_code_not_paired)
                 return@launch
             }
 
-            when (val result = client.mintToken(pairing.serverUrl, pairing.subscriberId, pairing.subscriberHash)) {
+            when (val result = client.mintToken(pairing.serverUrl, deviceId, deviceSecret)) {
                 is PgpQrTokenResult.Success -> renderQr(result.token)
                 is PgpQrTokenResult.NoIdentity -> qrStatusText.text = getString(R.string.pgp_qr_my_code_no_identity)
                 is PgpQrTokenResult.Unauthorized -> qrStatusText.text = getString(R.string.pgp_qr_my_code_unauthorized)

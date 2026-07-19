@@ -19,11 +19,11 @@ class SecurePairingStoreTest {
 
     private val pairing = PairingData(
         subscriberId = "subscriber-id",
-        subscriberHash = "top-secret-subscriber-hash",
         serverUrl = "https://server.example.com",
         registrationUrl = "https://server.example.com/api/notifications/native/register",
         pairingToken = "top-secret-pairing-token",
         deviceId = "resolved-device-id",
+        deviceSecret = "top-secret-device-secret",
         pairedAtEpochMs = 1_000L,
     )
 
@@ -59,7 +59,7 @@ class SecurePairingStoreTest {
         assertTrue("expected encrypted prefs file to exist", prefsFile.exists())
 
         val rawContents = prefsFile.readText()
-        assertFalse(rawContents.contains(pairing.subscriberHash))
+        assertFalse(rawContents.contains(pairing.deviceSecret!!))
         assertFalse(rawContents.contains(pairing.pairingToken))
         assertFalse(rawContents.contains(pairing.subscriberId))
     }

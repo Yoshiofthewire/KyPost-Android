@@ -13,11 +13,11 @@ class PairingAuthHeadersTest {
         val request = Request.Builder()
             .url("https://relay.example.com/api/inbox".toHttpUrl())
             .get()
-            .pairingAuthHeaders("sub-1", "hash-1")
+            .pairingAuthHeaders("device-1", "secret-1")
             .build()
 
-        assertEquals("sub-1", request.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", request.header(HEADER_SUBSCRIBER_HASH))
+        assertEquals("device-1", request.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", request.header(HEADER_DEVICE_SECRET))
     }
 
     @Test
@@ -25,10 +25,10 @@ class PairingAuthHeadersTest {
         val request = Request.Builder()
             .url("https://relay.example.com/api/inbox".toHttpUrl())
             .get()
-            .pairingAuthHeaders("sub-1", "hash-1")
+            .pairingAuthHeaders("device-1", "secret-1")
             .build()
 
-        assertNull(request.url.queryParameter("sub"))
-        assertNull(request.url.queryParameter("hash"))
+        assertNull(request.url.queryParameter("device"))
+        assertNull(request.url.queryParameter("secret"))
     }
 }

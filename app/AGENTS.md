@@ -10,17 +10,29 @@ Owns the Android app module build, manifest, source sets, resources, and test ex
 
 # Local Contracts
 
-- `sub`/`hash` pairing (Part 1 of `iOS_Mobile_notify.md`-style docs) is the single auth mechanism
-  for every backend call the app makes: native push pull, contact sync (`/api/contacts/sync`), and
-  mail relay (`/api/inbox`, `/api/inbox/folders`, `/api/inbox/actions`, `/api/mail/draft`,
-  `/api/mail/send`). No bearer tokens, no cookies, no separate mobile login. (This corrects an
-  earlier "no backend API calls from app runtime" claim here — native push registration/pull
-  already called the backend before contact sync and mail relay were added.)
+- Per-device `deviceId`/`deviceSecret` pairing (`X-Kypost-Device-Id`/`X-Kypost-Device-Secret`
+  headers, `PairingAuthHeaders.kt`) is the single auth mechanism for every backend call the app
+  makes: native push pull, contact sync (`/api/contacts/sync`), groups (`/api/groups`), PGP QR
+  token mint (`/api/pgp/qr/token`), mail relay (`/api/inbox`, `/api/inbox/folders`,
+  `/api/inbox/actions`, `/api/mail/draft`, `/api/mail/send`), MFA push-respond
+  (`/api/mfa/push/respond`), and self-deregistration (`/api/notifications/native/deregister`).
+  `deviceSecret` is minted server-side once per successful `POST
+  /api/notifications/native/register` call and returned only in that response — the app must
+  persist whatever it receives unconditionally, overwriting any prior value, since every
+  successful register invalidates the previous secret. No bearer tokens, no cookies, no separate
+  mobile login. (Replaces the earlier account-wide `sub`/`hash` shared-secret scheme, which the
+  backend removed entirely — no dual-auth fallback.)
 - Pairing proof material lives in a Keystore-backed `EncryptedSharedPreferences` file
   (`SecurePairingStore`), not plaintext DataStore — see `app/src/main/AGENTS.md` for the exact
   storage split. Non-secret sync state (cursors, delivery mode, history) is plaintext DataStore.
-- Deep-link contract for pairing is `llamalabels://native-pair` with required `sub`, `hash`, `srv`,
-  and `pt` params (`reg` optional). The legacy `novu-pair` scheme is removed entirely.
+- Deep-link contract for pairing is `llamalabels://native-pair` with required `sub`, `srv`, and
+  `pt` params (`reg` optional). `hash` is no longer part of the contract — the per-device secret
+  is issued only via the registration response, never carried in the pairing QR/deep-link. The
+  legacy `novu-pair` scheme is removed entirely.
+- Unpairing (`PushHomeViewModel.unpairDevice()`) calls `POST
+  /api/notifications/native/deregister` with the device's own credentials before clearing local
+  state; the local clear (and periodic pull-worker cancellation) happens unconditionally even if
+  that call fails (offline, already-removed).
 - Keep app behavior aligned with project goal: IMAP inbox read, SMTP send, keyword-based tab
   filtering, PLUS an alternate backend-relay connection mode (`MailConnectionMode.RELAY` in
   `MailSettings`, default `MANUAL_IMAP` so existing installs are unaffected) and two-way contact

@@ -19,7 +19,6 @@ private val JSON_MEDIA_TYPE = "application/json".toMediaType()
 @Serializable
 data class NativeRegistrationRequest(
     @SerialName("subscriberId") val subscriberId: String,
-    @SerialName("subscriberHash") val subscriberHash: String?,
     @SerialName("pairingToken") val pairingToken: String,
     @SerialName("deviceToken") val deviceToken: String,
     @SerialName("deviceId") val deviceId: String?,
@@ -39,6 +38,10 @@ data class NativeRegistrationResponse(
     @SerialName("ok") val ok: Boolean = false,
     @SerialName("synced") val synced: Boolean = false,
     @SerialName("deviceId") val deviceId: String? = null,
+    // The raw per-device pairing secret, minted fresh on every successful registration and
+    // returned only in this response — never retrievable again afterward. The caller must
+    // persist it unconditionally, overwriting any prior value (see PushSyncCoordinator).
+    @SerialName("deviceSecret") val deviceSecret: String? = null,
     // Current delivery mode for this user ("push" | "pull") and the endpoint to poll
     // when in pull mode. Both may be absent on older servers.
     @SerialName("deliveryMode") val deliveryMode: String? = null,
@@ -69,7 +72,6 @@ object NativeRegistrationRequestMapper {
     ): NativeRegistrationRequest {
         return NativeRegistrationRequest(
             subscriberId = pairing.subscriberId,
-            subscriberHash = pairing.subscriberHash.takeIf { it.isNotBlank() },
             pairingToken = pairing.pairingToken,
             deviceToken = token,
             deviceId = pairing.deviceId,
@@ -87,6 +89,7 @@ sealed class NativeRegistrationResult {
     data class Success(
         val syncedAtEpochMs: Long,
         val deviceId: String?,
+        val deviceSecret: String?,
         val deliveryMode: DeliveryMode = DeliveryMode.PUSH,
         val pullEndpoint: String? = null,
         val transport: String? = null,
@@ -133,6 +136,7 @@ class NativeRegistrationClient(
                     NativeRegistrationResult.Success(
                         syncedAtEpochMs = nowEpochMs,
                         deviceId = body.deviceId,
+                        deviceSecret = body.deviceSecret,
                         deliveryMode = DeliveryMode.fromWire(body.deliveryMode),
                         pullEndpoint = body.pullEndpoint,
                         transport = body.transport,

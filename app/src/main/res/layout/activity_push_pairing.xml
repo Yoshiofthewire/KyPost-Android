@@ -80,11 +80,11 @@
                     android:text="@string/push_pairing_resync" />
 
                 <Button
-                    android:id="@+id/btnClearPairing"
+                    android:id="@+id/btnUnpairDevice"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/push_pairing_clear" />
+                    android:text="@string/push_pairing_unpair" />
             </LinearLayout>
 
             <com.google.android.material.chip.ChipGroup

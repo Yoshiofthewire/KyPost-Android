@@ -25,6 +25,7 @@ import com.urlxl.mail.R
 import com.urlxl.mail.contacts.device.DeviceContactSyncEnabler
 import com.urlxl.mail.contacts.device.DeviceContactSyncSettings
 import com.urlxl.mail.contacts.device.DeviceContactsRuntime
+import com.urlxl.mail.applyDangerButtonTheme
 import com.urlxl.mail.applyEmptyStateBackground
 import com.urlxl.mail.applyPillChipTheme
 import com.urlxl.mail.applyPrimaryButtonTheme
@@ -43,7 +44,7 @@ class PushPairingActivity : AppCompatActivity() {
     private lateinit var historyList: ListView
     private lateinit var historyAdapter: PushHistoryAdapter
     private lateinit var btnResyncToken: Button
-    private lateinit var btnClearPairing: Button
+    private lateinit var btnUnpairDevice: Button
     private lateinit var btnScanQr: Button
     private lateinit var chipUseUnifiedPush: Chip
     private lateinit var chipUseFirebase: Chip
@@ -104,7 +105,7 @@ class PushPairingActivity : AppCompatActivity() {
         historyList.adapter = historyAdapter
 
         btnResyncToken.setOnClickListener { viewModel.resyncToken() }
-        btnClearPairing.setOnClickListener { viewModel.clearPairing() }
+        btnUnpairDevice.setOnClickListener { confirmAndUnpairDevice() }
         btnScanQr.setOnClickListener { onScanQrClicked() }
         chipUseUnifiedPush.setOnClickListener { viewModel.switchToUnifiedPush(this) }
         chipUseFirebase.setOnClickListener { viewModel.switchToFirebase() }
@@ -122,7 +123,7 @@ class PushPairingActivity : AppCompatActivity() {
         super.onResume()
         applyThemeToActivity(this)
         applyPrimaryButtonTheme(this, btnResyncToken)
-        applyPrimaryButtonTheme(this, btnClearPairing)
+        applyDangerButtonTheme(this, btnUnpairDevice)
         applyPrimaryButtonTheme(this, btnScanQr)
         applyPillChipTheme(this, chipUseUnifiedPush)
         applyPillChipTheme(this, chipUseFirebase)
@@ -150,7 +151,7 @@ class PushPairingActivity : AppCompatActivity() {
         latestKeywordsText = findViewById(R.id.pushPairingLatestKeywords)
         historyEmptyText = findViewById(R.id.pushPairingHistoryEmpty)
         btnResyncToken = findViewById(R.id.btnResyncToken)
-        btnClearPairing = findViewById(R.id.btnClearPairing)
+        btnUnpairDevice = findViewById(R.id.btnUnpairDevice)
         chipUseUnifiedPush = findViewById(R.id.chipUseUnifiedPush)
         chipUseFirebase = findViewById(R.id.chipUseFirebase)
     }
@@ -187,7 +188,7 @@ class PushPairingActivity : AppCompatActivity() {
         val paired = state.pairing != null
         val isUnifiedPush = state.transport == "unifiedpush"
         btnResyncToken.isEnabled = !state.isWorking
-        btnClearPairing.isEnabled = !state.isWorking
+        btnUnpairDevice.isEnabled = !state.isWorking
         btnScanQr.isEnabled = !state.isWorking
         chipUseUnifiedPush.isChecked = isUnifiedPush
         chipUseFirebase.isChecked = !isUnifiedPush
@@ -281,6 +282,17 @@ class PushPairingActivity : AppCompatActivity() {
             .setTitle(R.string.pairing_confirm_title)
             .setMessage(getString(messageRes, pairing.serverUrl))
             .setPositiveButton(R.string.pairing_confirm_positive) { _, _ -> viewModel.applyPairing(pairing) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    /** Unpairing now revokes server-side access (not just local state), so it gets the same
+     *  confirm-before-destructive-action treatment as [confirmAndApplyPairing]. */
+    private fun confirmAndUnpairDevice() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.push_pairing_unpair_confirm_title)
+            .setMessage(R.string.push_pairing_unpair_confirm_message)
+            .setPositiveButton(R.string.push_pairing_unpair) { _, _ -> viewModel.unpairDevice() }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }

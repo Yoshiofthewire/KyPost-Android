@@ -8,11 +8,11 @@ import java.nio.charset.StandardCharsets
 @Serializable
 data class PairingData(
     val subscriberId: String,
-    val subscriberHash: String,
     val serverUrl: String,
     val registrationUrl: String,
     val pairingToken: String,
     val deviceId: String?,
+    val deviceSecret: String?,
     val pairedAtEpochMs: Long,
 )
 
@@ -44,9 +44,8 @@ sealed class PairingParseResult {
 }
 
 object PairingValidator {
-    fun validate(sub: String, hash: String): PairingValidationResult {
+    fun validate(sub: String): PairingValidationResult {
         if (sub.isBlank()) return PairingValidationResult(false, "Missing sub parameter")
-        if (hash.isBlank()) return PairingValidationResult(false, "Missing hash parameter")
         return PairingValidationResult(true)
     }
 }
@@ -65,12 +64,11 @@ object NativePairingDeepLinkParser {
         val query = parseQuery(uri.rawQuery.orEmpty())
 
         val sub = query["sub"].orEmpty().trim()
-        val hash = query["hash"].orEmpty().trim()
         val srv = query["srv"].orEmpty().trim()
         val reg = query["reg"].orEmpty().trim().takeIf { it.isNotBlank() }
         val pt = query["pt"].orEmpty().trim()
 
-        val validation = PairingValidator.validate(sub = sub, hash = hash)
+        val validation = PairingValidator.validate(sub = sub)
         if (!validation.isValid) {
             return PairingParseResult.Error(validation.message ?: "Invalid pairing parameters")
         }
@@ -93,11 +91,11 @@ object NativePairingDeepLinkParser {
         return PairingParseResult.Success(
             PairingData(
                 subscriberId = sub,
-                subscriberHash = hash,
                 serverUrl = srv,
                 registrationUrl = reg.orEmpty(),
                 pairingToken = pt,
                 deviceId = null,
+                deviceSecret = null,
                 pairedAtEpochMs = nowEpochMs,
             ),
         )

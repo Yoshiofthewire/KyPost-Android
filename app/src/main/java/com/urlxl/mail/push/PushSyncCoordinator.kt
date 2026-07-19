@@ -14,7 +14,7 @@ class PushSyncCoordinator(
 
         val result = registrationClient.register(pairing = pairing, token = token)
         if (result is NativeRegistrationResult.Success) {
-            repository.savePairing(pairing.copy(deviceId = result.deviceId ?: pairing.deviceId))
+            repository.savePairing(pairing.copy(deviceId = result.deviceId ?: pairing.deviceId, deviceSecret = result.deviceSecret))
             persistDelivery(pairing, result)
             repository.updateTransport(result.transport)
             repository.updateSyncState(lastSyncAtEpochMs = result.syncedAtEpochMs, syncError = null)
@@ -91,7 +91,7 @@ class PushSyncCoordinator(
         )
         when (result) {
             is NativeRegistrationResult.Success -> {
-                repository.savePairing(pairing.copy(deviceId = result.deviceId ?: pairing.deviceId))
+                repository.savePairing(pairing.copy(deviceId = result.deviceId ?: pairing.deviceId, deviceSecret = result.deviceSecret))
                 persistDelivery(pairing, result)
                 repository.updateTransport(result.transport)
                 // Gate on the transport we requested, not result.transport: older servers may

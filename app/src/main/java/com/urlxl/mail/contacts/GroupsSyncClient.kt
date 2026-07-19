@@ -20,7 +20,7 @@ sealed class GroupsSyncResult {
 
 /**
  * Talks to `GET /api/groups`. Pull-only (there is no delta cursor — the caller always fetches
- * the full list and full-refreshes its local cache), mirroring [ContactSyncClient]'s X-Kypost-Subscriber-Id/X-Kypost-Subscriber-Hash
+ * the full list and full-refreshes its local cache), mirroring [ContactSyncClient]'s X-Kypost-Device-Id/X-Kypost-Device-Secret
  * header auth and HTTP-status-to-result mapping, minus the push/dedupe endpoints this
  * client has no need for. Two-way group *creation* sync (`POST /api/groups`) is out of scope for
  * this client — see `Client_Contact_Update.md` Part 2 point 3.
@@ -29,10 +29,10 @@ class GroupsSyncClient(
     private val json: Json = Json { ignoreUnknownKeys = true },
     private val callFactory: Call.Factory = OkHttpClient.Builder().build(),
 ) {
-    suspend fun pull(serverUrl: String, subscriberId: String, subscriberHash: String): GroupsSyncResult {
+    suspend fun pull(serverUrl: String, deviceId: String, deviceSecret: String): GroupsSyncResult {
         val base = groupsUrl(serverUrl) ?: return GroupsSyncResult.BadRequest("Server URL is not valid")
         val request = Request.Builder().url(base).get()
-            .pairingAuthHeaders(subscriberId, subscriberHash)
+            .pairingAuthHeaders(deviceId, deviceSecret)
             .build()
 
         val result = withContext(Dispatchers.IO) {
@@ -47,7 +47,7 @@ class GroupsSyncClient(
                 decoded?.let { GroupsSyncResult.Success(it.groups) } ?: GroupsSyncResult.Retryable("Malformed groups sync response")
             }
             400 -> GroupsSyncResult.BadRequest(rawBody.ifBlank { "Malformed request" })
-            401 -> GroupsSyncResult.Unauthorized("Bad hash or unknown subscriber")
+            401 -> GroupsSyncResult.Unauthorized("Bad secret or unknown device")
             503 -> GroupsSyncResult.ServiceUnavailable("Groups sync is not configured on the backend")
             else -> GroupsSyncResult.Retryable("Groups sync failed ($code)")
         }

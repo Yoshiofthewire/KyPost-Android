@@ -1,7 +1,7 @@
 package com.urlxl.mail.mail
 
-import com.urlxl.mail.HEADER_SUBSCRIBER_HASH
-import com.urlxl.mail.HEADER_SUBSCRIBER_ID
+import com.urlxl.mail.HEADER_DEVICE_ID
+import com.urlxl.mail.HEADER_DEVICE_SECRET
 import com.urlxl.mail.push.PairingData
 import okhttp3.Call
 import okhttp3.Callback
@@ -18,11 +18,11 @@ import org.junit.Test
 
 private fun testPairing() = PairingData(
     subscriberId = "sub-1",
-    subscriberHash = "hash-1",
     serverUrl = "https://relay.example.com",
     registrationUrl = "",
     pairingToken = "",
-    deviceId = null,
+    deviceId = "device-1",
+    deviceSecret = "secret-1",
     pairedAtEpochMs = 0L,
 )
 
@@ -232,8 +232,8 @@ class RelayMailSourceTest {
         source.fetchInbox("INBOX", 50)
 
         val sentRequest = callFactory.requests.single()
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
         assertNull(sentRequest.url.queryParameter("sub"))
         assertNull(sentRequest.url.queryParameter("hash"))
     }
@@ -252,8 +252,8 @@ class RelayMailSourceTest {
         source.listFolders(null)
 
         val sentRequest = callFactory.requests.single()
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
         assertNull(sentRequest.url.queryParameter("sub"))
         assertNull(sentRequest.url.queryParameter("hash"))
     }
@@ -270,8 +270,8 @@ class RelayMailSourceTest {
         source.createFolder("INBOX", "New Folder")
 
         val sentRequest = callFactory.requests.single()
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
         assertNull(sentRequest.url.queryParameter("sub"))
         assertNull(sentRequest.url.queryParameter("hash"))
     }
@@ -288,8 +288,8 @@ class RelayMailSourceTest {
         source.deleteFolder("INBOX/Old")
 
         val sentRequest = callFactory.requests.single()
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
         assertNull(sentRequest.url.queryParameter("sub"))
         assertNull(sentRequest.url.queryParameter("hash"))
         assertEquals("INBOX/Old", sentRequest.url.queryParameter("folder"))
@@ -317,8 +317,8 @@ class RelayMailSourceTest {
         source.downloadAttachment("m1", "INBOX", 0)
 
         val sentRequest = callFactory.requests.single()
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
         assertNull(sentRequest.url.queryParameter("sub"))
         assertNull(sentRequest.url.queryParameter("hash"))
     }

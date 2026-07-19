@@ -104,11 +104,14 @@ class PushHomeViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun clearPairing() {
+    fun unpairDevice() {
         scope.launch {
             isWorking.value = true
-            graph.repository.clearPairing()
-            localMessage.value = "Local pairing cleared"
+            val result = graph.repository.unpairDevice(graph.deregisterClient)
+            localMessage.value = when (result) {
+                is DeregisterResult.Success -> "Device unpaired"
+                is DeregisterResult.Error -> "Unpaired locally (server update failed: ${result.message})"
+            }
             isWorking.value = false
         }
     }

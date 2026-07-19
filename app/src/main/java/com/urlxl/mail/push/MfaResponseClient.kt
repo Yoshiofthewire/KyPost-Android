@@ -1,12 +1,14 @@
 package com.urlxl.mail.push
 
 import com.urlxl.mail.executeSync
+import com.urlxl.mail.pairingAuthHeaders
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -17,9 +19,6 @@ private val JSON_MEDIA_TYPE = "application/json".toMediaType()
 @Serializable
 data class MfaRespondRequest(
     @SerialName("challengeId") val challengeId: String,
-    @SerialName("subscriberId") val subscriberId: String,
-    @SerialName("subscriberHash") val subscriberHash: String,
-    @SerialName("deviceId") val deviceId: String,
     @SerialName("approve") val approve: Boolean,
 )
 
@@ -40,26 +39,27 @@ sealed class MfaRespondResult {
 
 class MfaResponseClient(
     private val json: Json = Json { ignoreUnknownKeys = true },
-    private val okHttpClient: OkHttpClient = OkHttpClient.Builder().build(),
+    // Call.Factory (not the concrete OkHttpClient) so tests can inject a fake without a real
+    // network call or a MockWebServer dependency; OkHttpClient itself satisfies this interface.
+    // Mirrors PullNotificationClient/RelayMailSource/ContactSyncClient's callFactory pattern.
+    private val callFactory: Call.Factory = OkHttpClient.Builder().build(),
 ) {
     suspend fun respond(pairing: PairingData, challengeId: String, approve: Boolean): MfaRespondResult {
         val deviceId = pairing.deviceId
-        if (deviceId.isNullOrBlank()) return MfaRespondResult.Error("Device is not registered yet")
+        val deviceSecret = pairing.deviceSecret
+        if (deviceId.isNullOrBlank() || deviceSecret.isNullOrBlank()) {
+            return MfaRespondResult.Error("Device is not registered yet")
+        }
 
-        val request = MfaRespondRequest(
-            challengeId = challengeId,
-            subscriberId = pairing.subscriberId,
-            subscriberHash = pairing.subscriberHash,
-            deviceId = deviceId,
-            approve = approve,
-        )
+        val request = MfaRespondRequest(challengeId = challengeId, approve = approve)
         val httpRequest = Request.Builder()
             .url(resolveMfaRespondEndpoint(pairing.serverUrl))
             .post(json.encodeToString(request).toRequestBody(JSON_MEDIA_TYPE))
+            .pairingAuthHeaders(deviceId, deviceSecret)
             .build()
 
         val result = withContext(Dispatchers.IO) {
-            okHttpClient.executeSync(httpRequest) { response -> response.code to response.body?.string().orEmpty() }
+            callFactory.executeSync(httpRequest) { response -> response.code to response.body?.string().orEmpty() }
         }
         val (code, rawBody) = result.getOrNull()
             ?: return MfaRespondResult.Error(result.exceptionOrNull()?.message ?: "Failed to reach server")

@@ -1,7 +1,7 @@
 package com.urlxl.mail.push
 
-import com.urlxl.mail.HEADER_SUBSCRIBER_HASH
-import com.urlxl.mail.HEADER_SUBSCRIBER_ID
+import com.urlxl.mail.HEADER_DEVICE_ID
+import com.urlxl.mail.HEADER_DEVICE_SECRET
 import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
@@ -62,17 +62,17 @@ class PullNotificationClientTest {
 
         val result = client.pull(
             pullEndpoint = "https://relay.example.com/api/notifications/native/pull",
-            subscriberId = "sub-1",
-            subscriberHash = "hash-1",
+            deviceId = "device-1",
+            deviceSecret = "secret-1",
             afterCursor = 0L,
         )
 
         assertTrue(result is PullResult.Success)
         val sentRequest = callFactory.requests.single()
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
-        assertNull(sentRequest.url.queryParameter("sub"))
-        assertNull(sentRequest.url.queryParameter("hash"))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
+        assertNull(sentRequest.url.queryParameter("device"))
+        assertNull(sentRequest.url.queryParameter("secret"))
         assertEquals("0", sentRequest.url.queryParameter("after"))
     }
 }

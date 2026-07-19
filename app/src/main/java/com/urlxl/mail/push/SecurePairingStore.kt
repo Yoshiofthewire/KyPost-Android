@@ -13,7 +13,7 @@ import kotlinx.coroutines.withContext
 private const val ENCRYPTED_PREFS_FILE_NAME = "push_pairing_secure"
 
 private const val KEY_SUBSCRIBER_ID = "pair_sub"
-private const val KEY_SUBSCRIBER_HASH = "pair_hash"
+private const val KEY_DEVICE_SECRET = "pair_device_secret"
 private const val KEY_SERVER_URL = "pair_srv"
 private const val KEY_REGISTRATION_URL = "pair_reg"
 private const val KEY_PAIRING_TOKEN = "pair_pt"
@@ -21,7 +21,7 @@ private const val KEY_DEVICE_ID = "pair_device_id"
 private const val KEY_PAIRED_AT = "pair_paired_at"
 
 /**
- * Holds pairing proof material (subscriber hash, pairing token) in a Keystore-backed
+ * Holds pairing proof material (device secret, pairing token) in a Keystore-backed
  * EncryptedSharedPreferences file rather than the plaintext DataStore used for the rest
  * of the push state (history, sync status, server URL setting).
  */
@@ -39,12 +39,12 @@ class SecurePairingStore(context: Context) {
         withContext(Dispatchers.IO) {
             prefs.edit()
                 .putString(KEY_SUBSCRIBER_ID, pairing.subscriberId)
-                .putString(KEY_SUBSCRIBER_HASH, pairing.subscriberHash)
                 .putString(KEY_SERVER_URL, pairing.serverUrl)
                 .putString(KEY_REGISTRATION_URL, pairing.registrationUrl)
                 .putString(KEY_PAIRING_TOKEN, pairing.pairingToken)
                 .apply {
                     if (pairing.deviceId.isNullOrBlank()) remove(KEY_DEVICE_ID) else putString(KEY_DEVICE_ID, pairing.deviceId)
+                    if (pairing.deviceSecret.isNullOrBlank()) remove(KEY_DEVICE_SECRET) else putString(KEY_DEVICE_SECRET, pairing.deviceSecret)
                 }
                 .putLong(KEY_PAIRED_AT, pairing.pairedAtEpochMs)
                 .commit()
@@ -56,7 +56,7 @@ class SecurePairingStore(context: Context) {
         withContext(Dispatchers.IO) {
             prefs.edit()
                 .remove(KEY_SUBSCRIBER_ID)
-                .remove(KEY_SUBSCRIBER_HASH)
+                .remove(KEY_DEVICE_SECRET)
                 .remove(KEY_SERVER_URL)
                 .remove(KEY_REGISTRATION_URL)
                 .remove(KEY_PAIRING_TOKEN)
@@ -69,13 +69,12 @@ class SecurePairingStore(context: Context) {
 
     private fun readPairing(): PairingData? {
         val subId = prefs.getString(KEY_SUBSCRIBER_ID, null).orEmpty()
-        val subHash = prefs.getString(KEY_SUBSCRIBER_HASH, null).orEmpty()
         val serverUrl = prefs.getString(KEY_SERVER_URL, null).orEmpty()
         val registrationUrl = prefs.getString(KEY_REGISTRATION_URL, null).orEmpty()
         val pairingToken = prefs.getString(KEY_PAIRING_TOKEN, null).orEmpty()
         val pairedAt = if (prefs.contains(KEY_PAIRED_AT)) prefs.getLong(KEY_PAIRED_AT, 0L) else null
 
-        if (subId.isBlank() || subHash.isBlank() || serverUrl.isBlank() ||
+        if (subId.isBlank() || serverUrl.isBlank() ||
             registrationUrl.isBlank() || pairingToken.isBlank() || pairedAt == null
         ) {
             return null
@@ -83,11 +82,11 @@ class SecurePairingStore(context: Context) {
 
         return PairingData(
             subscriberId = subId,
-            subscriberHash = subHash,
             serverUrl = serverUrl,
             registrationUrl = registrationUrl,
             pairingToken = pairingToken,
             deviceId = prefs.getString(KEY_DEVICE_ID, null),
+            deviceSecret = prefs.getString(KEY_DEVICE_SECRET, null),
             pairedAtEpochMs = pairedAt,
         )
     }

@@ -25,8 +25,11 @@ class GroupSyncRepository(
 ) {
     suspend fun sync(): GroupSyncOutcome {
         val pairing = pairingProvider() ?: return GroupSyncOutcome.NotPaired
+        val deviceId = pairing.deviceId
+        val deviceSecret = pairing.deviceSecret
+        if (deviceId.isNullOrBlank() || deviceSecret.isNullOrBlank()) return GroupSyncOutcome.NotPaired
 
-        return when (val result = client.pull(pairing.serverUrl, pairing.subscriberId, pairing.subscriberHash)) {
+        return when (val result = client.pull(pairing.serverUrl, deviceId, deviceSecret)) {
             is GroupsSyncResult.Success -> {
                 applyFullRefresh(result.groups)
                 GroupSyncOutcome.Success

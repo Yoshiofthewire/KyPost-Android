@@ -9,7 +9,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_validDeepLink_extractsRequiredParams() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=subscriber-123&hash=secureHash&srv=https%3A%2F%2Fserver.example.com" +
+            "llamalabels://native-pair?sub=subscriber-123&srv=https%3A%2F%2Fserver.example.com" +
                 "&reg=https%3A%2F%2Fserver.example.com%2Fapi%2Fnotifications%2Fnative%2Fregister&pt=short-lived-token",
             nowEpochMs = 123L,
         )
@@ -17,18 +17,32 @@ class NativePairingDeepLinkParserTest {
         assertTrue(result is PairingParseResult.Success)
         val pairing = (result as PairingParseResult.Success).pairing
         assertEquals("subscriber-123", pairing.subscriberId)
-        assertEquals("secureHash", pairing.subscriberHash)
         assertEquals("https://server.example.com", pairing.serverUrl)
         assertEquals("https://server.example.com/api/notifications/native/register", pairing.registrationUrl)
         assertEquals("short-lived-token", pairing.pairingToken)
         assertEquals(null, pairing.deviceId)
+        assertEquals(null, pairing.deviceSecret)
         assertEquals(123L, pairing.pairedAtEpochMs)
+    }
+
+    @Test
+    fun parse_ignoresLegacyHashParamIfPresent() {
+        // A stale cached QR image from before the per-device-secret migration may still carry a
+        // hash= param; it must simply be ignored, not rejected, since it's harmless and the
+        // pairingToken alone is what actually gates registration.
+        val result = NativePairingDeepLinkParser.parse(
+            "llamalabels://native-pair?sub=subscriber-123&hash=stale-hash&srv=https%3A%2F%2Fserver.example.com&pt=token",
+        )
+
+        assertTrue(result is PairingParseResult.Success)
+        val pairing = (result as PairingParseResult.Success).pairing
+        assertEquals(null, pairing.deviceSecret)
     }
 
     @Test
     fun parse_missingReg_leavesRegistrationUrlBlank() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=subscriber-123&hash=secureHash&srv=https%3A%2F%2Fserver.example.com&pt=token",
+            "llamalabels://native-pair?sub=subscriber-123&srv=https%3A%2F%2Fserver.example.com&pt=token",
         )
 
         val pairing = (result as PairingParseResult.Success).pairing
@@ -38,7 +52,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_missingPairingToken_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=subscriber-123&hash=secureHash&srv=https%3A%2F%2Fserver.example.com",
+            "llamalabels://native-pair?sub=subscriber-123&srv=https%3A%2F%2Fserver.example.com",
         )
 
         assertTrue(result is PairingParseResult.Error)
@@ -48,7 +62,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_missingServerUrl_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=subscriber-123&hash=secureHash&pt=token",
+            "llamalabels://native-pair?sub=subscriber-123&pt=token",
         )
 
         assertTrue(result is PairingParseResult.Error)
@@ -58,7 +72,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_legacyNovuPairScheme_isRejected() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://novu-pair?sub=a&hash=b&srv=https%3A%2F%2Fserver.example.com&pt=c",
+            "llamalabels://novu-pair?sub=a&srv=https%3A%2F%2Fserver.example.com&pt=c",
         )
 
         assertTrue(result is PairingParseResult.Error)
@@ -67,7 +81,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_invalidHost_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://other-host?sub=a&hash=b&srv=https%3A%2F%2Fserver.example.com&pt=c",
+            "llamalabels://other-host?sub=a&srv=https%3A%2F%2Fserver.example.com&pt=c",
         )
 
         assertTrue(result is PairingParseResult.Error)
@@ -76,7 +90,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_httpServerUrl_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=a&hash=b&srv=http%3A%2F%2Fserver.example.com&pt=c",
+            "llamalabels://native-pair?sub=a&srv=http%3A%2F%2Fserver.example.com&pt=c",
         )
 
         assertTrue(result is PairingParseResult.Error)
@@ -86,7 +100,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_httpRegistrationUrl_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=a&hash=b&srv=https%3A%2F%2Fserver.example.com" +
+            "llamalabels://native-pair?sub=a&srv=https%3A%2F%2Fserver.example.com" +
                 "&reg=http%3A%2F%2Fserver.example.com%2Fregister&pt=c",
         )
 
@@ -97,7 +111,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_schemelessServerUrl_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=a&hash=b&srv=server.example.com&pt=c",
+            "llamalabels://native-pair?sub=a&srv=server.example.com&pt=c",
         )
 
         assertTrue(result is PairingParseResult.Error)

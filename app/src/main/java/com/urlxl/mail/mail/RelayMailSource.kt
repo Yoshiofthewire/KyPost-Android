@@ -22,7 +22,7 @@ private const val CHANGE_TYPE_UPDATED = "updated"
 /**
  * Talks to the six relay endpoints in Mobile_Mail_Relay.md. Blocking by design to match
  * [MailSource]'s synchronous interface — callers already run on a background executor thread.
- * Auth is sent as X-Kypost-Subscriber-Id/X-Kypost-Subscriber-Hash headers, sourced from the
+ * Auth is sent as X-Kypost-Device-Id/X-Kypost-Device-Secret headers, sourced from the
  * pairing state (never query params/cookies).
  */
 class RelayMailSource(
@@ -34,6 +34,12 @@ class RelayMailSource(
     private val callFactory: Call.Factory = OkHttpClient.Builder().build(),
 ) : MailSource {
 
+    /** Attaches this device's own pairing credentials. A missing deviceId/deviceSecret (not yet
+     *  registered) sends blank headers, which the server rejects with 401 — surfaced through the
+     *  same [mapErrorCode] path as any other bad credential, rather than a special-cased result. */
+    private fun Request.Builder.authed(pairing: PairingData): Request.Builder =
+        pairingAuthHeaders(pairing.deviceId.orEmpty(), pairing.deviceSecret.orEmpty())
+
     override fun fetchInbox(mailbox: String, limit: Int, forceFullResync: Boolean): MailOutcome<MailFetchResult> {
         val pairing = pairingProvider() ?: return MailOutcome.Unauthorized("Device is not paired")
         val base = baseUrl(pairing, "/api/inbox") ?: return MailOutcome.BadRequest("Server URL is not valid")
@@ -44,7 +50,7 @@ class RelayMailSource(
             .addQueryParameter("since", since)
             .build()
         val request = Request.Builder().url(url).get()
-            .pairingAuthHeaders(pairing.subscriberId, pairing.subscriberHash)
+            .authed(pairing)
             .build()
         return execute(request) { code, body ->
             if (code != 200) return@execute mapErrorCode(code, body)
@@ -84,7 +90,7 @@ class RelayMailSource(
         val urlBuilder = base.newBuilder()
         if (!parent.isNullOrBlank()) urlBuilder.addQueryParameter("parent", parent)
         val request = Request.Builder().url(urlBuilder.build()).get()
-            .pairingAuthHeaders(pairing.subscriberId, pairing.subscriberHash)
+            .authed(pairing)
             .build()
         return execute(request) { code, body ->
             if (code != 200) return@execute mapErrorCode(code, body)
@@ -101,7 +107,7 @@ class RelayMailSource(
         val base = baseUrl(pairing, "/api/inbox/folders") ?: return MailOutcome.BadRequest("Server URL is not valid")
         val body = json.encodeToString(RelayFolderCreateRequestDto(parent = parent, name = name))
         val request = Request.Builder().url(base).post(body.toRequestBody(JSON_MEDIA_TYPE))
-            .pairingAuthHeaders(pairing.subscriberId, pairing.subscriberHash)
+            .authed(pairing)
             .build()
         return execute(request) { code, rawBody -> mutationOutcome(code, rawBody) }
     }
@@ -111,7 +117,7 @@ class RelayMailSource(
         val base = baseUrl(pairing, "/api/inbox/folders") ?: return MailOutcome.BadRequest("Server URL is not valid")
         val body = json.encodeToString(RelayFolderRenameRequestDto(folder = folder, name = name))
         val request = Request.Builder().url(base).put(body.toRequestBody(JSON_MEDIA_TYPE))
-            .pairingAuthHeaders(pairing.subscriberId, pairing.subscriberHash)
+            .authed(pairing)
             .build()
         return execute(request) { code, rawBody -> mutationOutcome(code, rawBody) }
     }
@@ -121,7 +127,7 @@ class RelayMailSource(
         val base = baseUrl(pairing, "/api/inbox/folders") ?: return MailOutcome.BadRequest("Server URL is not valid")
         val url = base.newBuilder().addQueryParameter("folder", folder).build()
         val request = Request.Builder().url(url).delete()
-            .pairingAuthHeaders(pairing.subscriberId, pairing.subscriberHash)
+            .authed(pairing)
             .build()
         return execute(request) { code, rawBody -> mutationOutcome(code, rawBody) }
     }
@@ -142,7 +148,7 @@ class RelayMailSource(
         )
         val body = json.encodeToString(requestDto)
         val request = Request.Builder().url(base).post(body.toRequestBody(JSON_MEDIA_TYPE))
-            .pairingAuthHeaders(pairing.subscriberId, pairing.subscriberHash)
+            .authed(pairing)
             .build()
         return execute(request) { code, rawBody ->
             if (code != 200) return@execute mapErrorCode(code, rawBody)
@@ -161,7 +167,7 @@ class RelayMailSource(
         val base = baseUrl(pairing, "/api/mail/draft") ?: return MailOutcome.BadRequest("Server URL is not valid")
         val body = json.encodeToString(draft.toWireDto())
         val request = Request.Builder().url(base).post(body.toRequestBody(JSON_MEDIA_TYPE))
-            .pairingAuthHeaders(pairing.subscriberId, pairing.subscriberHash)
+            .authed(pairing)
             .build()
         return execute(request) { code, rawBody -> mutationOutcome(code, rawBody) }
     }
@@ -171,7 +177,7 @@ class RelayMailSource(
         val base = baseUrl(pairing, "/api/mail/send") ?: return MailOutcome.BadRequest("Server URL is not valid")
         val body = json.encodeToString(draft.toWireDto())
         val request = Request.Builder().url(base).post(body.toRequestBody(JSON_MEDIA_TYPE))
-            .pairingAuthHeaders(pairing.subscriberId, pairing.subscriberHash)
+            .authed(pairing)
             .build()
         return execute(request) { code, rawBody ->
             if (code != 200) return@execute mapErrorCode(code, rawBody)
@@ -196,7 +202,7 @@ class RelayMailSource(
             .addQueryParameter("messageId", messageId)
             .build()
         val request = Request.Builder().url(url).get()
-            .pairingAuthHeaders(pairing.subscriberId, pairing.subscriberHash)
+            .authed(pairing)
             .build()
         return execute(request) { code, body ->
             if (code != 200) return@execute mapErrorCode(code, body)
@@ -215,7 +221,7 @@ class RelayMailSource(
             .addQueryParameter("index", index.toString())
             .build()
         val request = Request.Builder().url(url).get()
-            .pairingAuthHeaders(pairing.subscriberId, pairing.subscriberHash)
+            .authed(pairing)
             .build()
         // Binary response: read bytes and metadata headers inside the use block, not execute()'s
         // string() path.
@@ -238,7 +244,7 @@ class RelayMailSource(
         } else {
             MailOutcome.BadRequest(rawBody.ifBlank { "Malformed request" })
         }
-        401 -> MailOutcome.Unauthorized("Bad hash or unknown subscriber")
+        401 -> MailOutcome.Unauthorized("Bad secret or unknown device")
         502 -> MailOutcome.UpstreamFailure("Upstream IMAP/SMTP failure")
         503 -> MailOutcome.ServiceUnavailable(rawBody.ifBlank { "Mail relay is temporarily unavailable" })
         else -> MailOutcome.UpstreamFailure("Mail relay request failed ($code)")

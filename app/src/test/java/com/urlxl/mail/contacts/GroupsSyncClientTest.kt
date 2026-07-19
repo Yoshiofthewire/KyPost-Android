@@ -1,7 +1,7 @@
 package com.urlxl.mail.contacts
 
-import com.urlxl.mail.HEADER_SUBSCRIBER_HASH
-import com.urlxl.mail.HEADER_SUBSCRIBER_ID
+import com.urlxl.mail.HEADER_DEVICE_SECRET
+import com.urlxl.mail.HEADER_DEVICE_ID
 import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
@@ -83,7 +83,7 @@ class GroupsSyncClientTest {
         }
         val client = GroupsSyncClient(callFactory = callFactory)
 
-        val result = client.pull("https://relay.example.com/", "sub-1", "hash-1")
+        val result = client.pull("https://relay.example.com/", "device-1", "secret-1")
 
         assertTrue(result is GroupsSyncResult.Success)
         val groups = (result as GroupsSyncResult.Success).groups
@@ -96,10 +96,10 @@ class GroupsSyncClientTest {
 
         val sentRequest = callFactory.requests.single()
         assertEquals("https://relay.example.com/api/groups", sentRequest.url.newBuilder().query(null).build().toString())
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
-        assertNull(sentRequest.url.queryParameter("sub"))
-        assertNull(sentRequest.url.queryParameter("hash"))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
+        assertNull(sentRequest.url.queryParameter("device"))
+        assertNull(sentRequest.url.queryParameter("secret"))
         assertEquals("GET", sentRequest.method)
     }
 
@@ -108,7 +108,7 @@ class GroupsSyncClientTest {
         val callFactory = GroupsFakeCallFactory { request -> groupsResponse(request, """{"groups": []}""", 200) }
         val client = GroupsSyncClient(callFactory = callFactory)
 
-        val result = client.pull("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.pull("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is GroupsSyncResult.Success)
         assertEquals(emptyList<GroupDto>(), (result as GroupsSyncResult.Success).groups)
@@ -119,7 +119,7 @@ class GroupsSyncClientTest {
         val callFactory = GroupsFakeCallFactory { request -> groupsResponse(request, "bad params", 400) }
         val client = GroupsSyncClient(callFactory = callFactory)
 
-        val result = client.pull("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.pull("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is GroupsSyncResult.BadRequest)
         assertEquals("bad params", (result as GroupsSyncResult.BadRequest).message)
@@ -130,7 +130,7 @@ class GroupsSyncClientTest {
         val callFactory = GroupsFakeCallFactory { request -> groupsResponse(request, "", 401) }
         val client = GroupsSyncClient(callFactory = callFactory)
 
-        val result = client.pull("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.pull("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is GroupsSyncResult.Unauthorized)
     }
@@ -140,7 +140,7 @@ class GroupsSyncClientTest {
         val callFactory = GroupsFakeCallFactory { request -> groupsResponse(request, "", 503) }
         val client = GroupsSyncClient(callFactory = callFactory)
 
-        val result = client.pull("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.pull("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is GroupsSyncResult.ServiceUnavailable)
     }
@@ -150,7 +150,7 @@ class GroupsSyncClientTest {
         val callFactory = GroupsFakeCallFactory { request -> groupsResponse(request, "not json", 200) }
         val client = GroupsSyncClient(callFactory = callFactory)
 
-        val result = client.pull("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.pull("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is GroupsSyncResult.Retryable)
     }
@@ -160,7 +160,7 @@ class GroupsSyncClientTest {
         val callFactory = GroupsFakeCallFactory { request -> groupsResponse(request, "", 500) }
         val client = GroupsSyncClient(callFactory = callFactory)
 
-        val result = client.pull("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.pull("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is GroupsSyncResult.Retryable)
     }
@@ -170,7 +170,7 @@ class GroupsSyncClientTest {
         val callFactory = GroupsThrowingCallFactory(IOException("boom"))
         val client = GroupsSyncClient(callFactory = callFactory)
 
-        val result = client.pull("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.pull("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is GroupsSyncResult.Retryable)
         assertEquals("boom", (result as GroupsSyncResult.Retryable).message)

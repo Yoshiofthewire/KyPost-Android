@@ -1,7 +1,7 @@
 package com.urlxl.mail.pgp
 
-import com.urlxl.mail.HEADER_SUBSCRIBER_HASH
-import com.urlxl.mail.HEADER_SUBSCRIBER_ID
+import com.urlxl.mail.HEADER_DEVICE_SECRET
+import com.urlxl.mail.HEADER_DEVICE_ID
 import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
@@ -82,7 +82,7 @@ class PgpQrClientTest {
         }
         val client = PgpQrClient(callFactory = callFactory)
 
-        val result = client.mintToken("https://relay.example.com/", "sub-1", "hash-1")
+        val result = client.mintToken("https://relay.example.com/", "device-1", "secret-1")
 
         assertTrue(result is PgpQrTokenResult.Success)
         val token = (result as PgpQrTokenResult.Success).token
@@ -95,8 +95,8 @@ class PgpQrClientTest {
             "https://relay.example.com/api/pgp/qr/token",
             sentRequest.url.newBuilder().query(null).build().toString(),
         )
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
         assertNull(sentRequest.url.queryParameter("sub"))
         assertNull(sentRequest.url.queryParameter("hash"))
         assertEquals("GET", sentRequest.method)
@@ -107,7 +107,7 @@ class PgpQrClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "no PGP identity configured yet", 400) }
         val client = PgpQrClient(callFactory = callFactory)
 
-        val result = client.mintToken("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.mintToken("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is PgpQrTokenResult.NoIdentity)
         assertEquals("no PGP identity configured yet", (result as PgpQrTokenResult.NoIdentity).message)
@@ -118,7 +118,7 @@ class PgpQrClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "", 401) }
         val client = PgpQrClient(callFactory = callFactory)
 
-        val result = client.mintToken("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.mintToken("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is PgpQrTokenResult.Unauthorized)
     }
@@ -128,7 +128,7 @@ class PgpQrClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "", 503) }
         val client = PgpQrClient(callFactory = callFactory)
 
-        val result = client.mintToken("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.mintToken("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is PgpQrTokenResult.ServiceUnavailable)
     }
@@ -138,7 +138,7 @@ class PgpQrClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "not json", 200) }
         val client = PgpQrClient(callFactory = callFactory)
 
-        val result = client.mintToken("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.mintToken("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is PgpQrTokenResult.Retryable)
     }
@@ -148,7 +148,7 @@ class PgpQrClientTest {
         val callFactory = ThrowingCallFactory(IOException("boom"))
         val client = PgpQrClient(callFactory = callFactory)
 
-        val result = client.mintToken("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.mintToken("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is PgpQrTokenResult.Retryable)
         assertEquals("boom", (result as PgpQrTokenResult.Retryable).message)
@@ -159,7 +159,7 @@ class PgpQrClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "", 500) }
         val client = PgpQrClient(callFactory = callFactory)
 
-        val result = client.mintToken("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.mintToken("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is PgpQrTokenResult.Retryable)
     }

@@ -71,6 +71,24 @@ class PushRepository(private val context: Context) {
         }
     }
 
+    /**
+     * Best-effort server deregistration, then unconditional local clear: even if the network
+     * call fails (offline, server already removed the device, credentials already invalid), the
+     * device must still be usable to re-pair afterward — local state can never be stuck "paired".
+     * Also cancels the periodic pull worker, which [clearPairing] alone does not do.
+     */
+    suspend fun unpairDevice(deregisterClient: DeregisterClient): DeregisterResult {
+        val pairing = state.first().pairing
+        val networkResult = if (pairing != null) {
+            deregisterClient.deregister(pairing)
+        } else {
+            DeregisterResult.Error("Device is not paired")
+        }
+        clearPairing()
+        PullScheduler.cancelPeriodic(context)
+        return networkResult
+    }
+
     /** Persist the authoritative delivery mode and (derived or server-provided) pull endpoint. */
     suspend fun updateDelivery(mode: DeliveryMode, pullEndpoint: String?) {
         context.pushDataStore.edit { prefs ->

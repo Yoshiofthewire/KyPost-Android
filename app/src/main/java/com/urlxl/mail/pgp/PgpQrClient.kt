@@ -10,7 +10,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-/** Outcome of `GET /api/pgp/qr/token` (pairing-authenticated via X-Kypost-Subscriber-Id/X-Kypost-Subscriber-Hash headers). */
+/** Outcome of `GET /api/pgp/qr/token` (pairing-authenticated via X-Kypost-Device-Id/X-Kypost-Device-Secret headers). */
 sealed class PgpQrTokenResult {
     data class Success(val token: PgpQrTokenDto) : PgpQrTokenResult()
 
@@ -19,7 +19,7 @@ sealed class PgpQrTokenResult {
      *  the web app rather than any in-app settings screen. */
     data class NoIdentity(val message: String) : PgpQrTokenResult()
 
-    /** 401: bad hash / unknown subscriber. */
+    /** 401: bad secret / unknown device. */
     data class Unauthorized(val message: String) : PgpQrTokenResult()
 
     /** 503: server's pairing subsystem isn't configured — a persistent ops issue, not something a
@@ -49,7 +49,7 @@ sealed class PgpQrKeyResult {
 
 /**
  * Talks to the backend's PGP QR key-exchange endpoints. `mintToken` is pairing-authenticated
- * exactly like every other endpoint this app calls (X-Kypost-Subscriber-Id/X-Kypost-Subscriber-Hash
+ * exactly like every other endpoint this app calls (X-Kypost-Device-Id/X-Kypost-Device-Secret
  * headers, never a session cookie — this app has no session-cookie concept). `fetchKey` is
  * unauthenticated; the token itself is the credential. Kept parallel to
  * [com.urlxl.mail.contacts.ContactSyncClient] — same okhttp/serialization stack and
@@ -61,10 +61,10 @@ class PgpQrClient(
     // network call or a MockWebServer dependency; OkHttpClient itself satisfies this interface.
     private val callFactory: Call.Factory = OkHttpClient.Builder().build(),
 ) {
-    suspend fun mintToken(serverUrl: String, subscriberId: String, subscriberHash: String): PgpQrTokenResult {
+    suspend fun mintToken(serverUrl: String, deviceId: String, deviceSecret: String): PgpQrTokenResult {
         val base = tokenUrl(serverUrl) ?: return PgpQrTokenResult.Retryable("Server URL is not valid")
         val request = Request.Builder().url(base).get()
-            .pairingAuthHeaders(subscriberId, subscriberHash)
+            .pairingAuthHeaders(deviceId, deviceSecret)
             .build()
 
         val result = executeRequest(request)
@@ -78,7 +78,7 @@ class PgpQrClient(
                 ?.let { PgpQrTokenResult.Success(it) }
                 ?: PgpQrTokenResult.Retryable("Malformed PGP QR token response")
             400 -> PgpQrTokenResult.NoIdentity(rawBody.ifBlank { "No PGP identity configured yet" })
-            401 -> PgpQrTokenResult.Unauthorized("Bad hash or unknown subscriber")
+            401 -> PgpQrTokenResult.Unauthorized("Bad secret or unknown device")
             503 -> PgpQrTokenResult.ServiceUnavailable("PGP key exchange is not configured on the backend")
             else -> PgpQrTokenResult.Retryable("PGP QR token mint failed ($code)")
         }

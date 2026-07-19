@@ -1,7 +1,7 @@
 package com.urlxl.mail.contacts
 
-import com.urlxl.mail.HEADER_SUBSCRIBER_ID
-import com.urlxl.mail.HEADER_SUBSCRIBER_HASH
+import com.urlxl.mail.HEADER_DEVICE_ID
+import com.urlxl.mail.HEADER_DEVICE_SECRET
 import kotlinx.coroutines.runBlocking
 import okhttp3.Call
 import okhttp3.Callback
@@ -80,7 +80,7 @@ class ContactSyncClientTest {
         }
         val client = ContactSyncClient(callFactory = callFactory)
 
-        val result = client.dedupe("https://relay.example.com/", "sub-1", "hash-1")
+        val result = client.dedupe("https://relay.example.com/", "device-1", "secret-1")
 
         assertTrue(result is ContactDedupeResult.Success)
         val report = (result as ContactDedupeResult.Success).report
@@ -89,10 +89,10 @@ class ContactSyncClientTest {
 
         val sentRequest = callFactory.requests.single()
         assertEquals("https://relay.example.com/api/contacts/dedupe", sentRequest.url.newBuilder().query(null).build().toString())
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
-        assertNull(sentRequest.url.queryParameter("sub"))
-        assertNull(sentRequest.url.queryParameter("hash"))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
+        assertNull(sentRequest.url.queryParameter("device"))
+        assertNull(sentRequest.url.queryParameter("secret"))
         assertEquals("POST", sentRequest.method)
     }
 
@@ -101,7 +101,7 @@ class ContactSyncClientTest {
         val callFactory = FakeCallFactory { request -> response(request, """{"mergedCount": 0, "groups": []}""", 200) }
         val client = ContactSyncClient(callFactory = callFactory)
 
-        val result = client.dedupe("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.dedupe("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is ContactDedupeResult.Success)
         assertEquals(0, (result as ContactDedupeResult.Success).report.mergedCount)
@@ -112,7 +112,7 @@ class ContactSyncClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "bad params", 400) }
         val client = ContactSyncClient(callFactory = callFactory)
 
-        val result = client.dedupe("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.dedupe("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is ContactDedupeResult.BadRequest)
         assertEquals("bad params", (result as ContactDedupeResult.BadRequest).message)
@@ -123,7 +123,7 @@ class ContactSyncClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "", 401) }
         val client = ContactSyncClient(callFactory = callFactory)
 
-        val result = client.dedupe("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.dedupe("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is ContactDedupeResult.Unauthorized)
     }
@@ -133,7 +133,7 @@ class ContactSyncClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "", 503) }
         val client = ContactSyncClient(callFactory = callFactory)
 
-        val result = client.dedupe("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.dedupe("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is ContactDedupeResult.ServiceUnavailable)
     }
@@ -143,7 +143,7 @@ class ContactSyncClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "not json", 200) }
         val client = ContactSyncClient(callFactory = callFactory)
 
-        val result = client.dedupe("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.dedupe("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is ContactDedupeResult.Retryable)
     }
@@ -153,7 +153,7 @@ class ContactSyncClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "", 500) }
         val client = ContactSyncClient(callFactory = callFactory)
 
-        val result = client.dedupe("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.dedupe("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is ContactDedupeResult.Retryable)
     }
@@ -163,7 +163,7 @@ class ContactSyncClientTest {
         val callFactory = ThrowingCallFactory(IOException("boom"))
         val client = ContactSyncClient(callFactory = callFactory)
 
-        val result = client.dedupe("https://relay.example.com", "sub-1", "hash-1")
+        val result = client.dedupe("https://relay.example.com", "device-1", "secret-1")
 
         assertTrue(result is ContactDedupeResult.Retryable)
         assertEquals("boom", (result as ContactDedupeResult.Retryable).message)
@@ -174,7 +174,7 @@ class ContactSyncClientTest {
         val callFactory = FakeCallFactory { request -> response(request, """{"mergedCount": 0, "groups": []}""", 200) }
         val client = ContactSyncClient(callFactory = callFactory)
 
-        client.dedupe("https://relay.example.com", "sub-1", "hash-1")
+        client.dedupe("https://relay.example.com", "device-1", "secret-1")
 
         val body = callFactory.requests.single().body
         assertEquals(0L, body?.contentLength())
@@ -185,14 +185,14 @@ class ContactSyncClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "{}", 200) }
         val client = ContactSyncClient(callFactory = callFactory)
 
-        val result = client.pull("https://relay.example.com", "sub-1", "hash-1", since = 0L)
+        val result = client.pull("https://relay.example.com", "device-1", "secret-1", since = 0L)
 
         assertTrue(result is ContactSyncResult.Success)
         val sentRequest = callFactory.requests.single()
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
-        assertNull(sentRequest.url.queryParameter("sub"))
-        assertNull(sentRequest.url.queryParameter("hash"))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
+        assertNull(sentRequest.url.queryParameter("device"))
+        assertNull(sentRequest.url.queryParameter("secret"))
         assertEquals("0", sentRequest.url.queryParameter("since"))
     }
 
@@ -201,14 +201,14 @@ class ContactSyncClientTest {
         val callFactory = FakeCallFactory { request -> response(request, "{}", 200) }
         val client = ContactSyncClient(callFactory = callFactory)
 
-        val result = client.push("https://relay.example.com", "sub-1", "hash-1", baseCursor = 0L, changes = emptyList())
+        val result = client.push("https://relay.example.com", "device-1", "secret-1", baseCursor = 0L, changes = emptyList())
 
         assertTrue(result is ContactSyncResult.Success)
         val sentRequest = callFactory.requests.single()
-        assertEquals("sub-1", sentRequest.header(HEADER_SUBSCRIBER_ID))
-        assertEquals("hash-1", sentRequest.header(HEADER_SUBSCRIBER_HASH))
-        assertNull(sentRequest.url.queryParameter("sub"))
-        assertNull(sentRequest.url.queryParameter("hash"))
+        assertEquals("device-1", sentRequest.header(HEADER_DEVICE_ID))
+        assertEquals("secret-1", sentRequest.header(HEADER_DEVICE_SECRET))
+        assertNull(sentRequest.url.queryParameter("device"))
+        assertNull(sentRequest.url.queryParameter("secret"))
         assertEquals("POST", sentRequest.method)
     }
 }

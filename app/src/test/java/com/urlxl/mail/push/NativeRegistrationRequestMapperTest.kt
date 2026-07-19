@@ -12,18 +12,17 @@ class NativeRegistrationRequestMapperTest {
     fun map_usesSubscriberIdPairingTokenDeviceIdAndPlatform() {
         val pairing = PairingData(
             subscriberId = "subscriber-id",
-            subscriberHash = "subscriber-hash",
             serverUrl = "https://server.example.com",
             registrationUrl = "https://server.example.com/api/notifications/native/register",
             pairingToken = "pairing-token",
             deviceId = "last-known-device-id",
+            deviceSecret = "last-known-device-secret",
             pairedAtEpochMs = 100L,
         )
 
         val request = NativeRegistrationRequestMapper.map(pairing = pairing, token = "fcm-token")
 
         assertEquals("subscriber-id", request.subscriberId)
-        assertEquals("subscriber-hash", request.subscriberHash)
         assertEquals("pairing-token", request.pairingToken)
         assertEquals("fcm-token", request.deviceToken)
         assertEquals("last-known-device-id", request.deviceId)
@@ -36,11 +35,11 @@ class NativeRegistrationRequestMapperTest {
     fun map_withWebPushKeys_includesP256dhAndAuth() {
         val pairing = PairingData(
             subscriberId = "subscriber-id",
-            subscriberHash = "subscriber-hash",
             serverUrl = "https://server.example.com",
             registrationUrl = "https://server.example.com/api/notifications/native/register",
             pairingToken = "pairing-token",
             deviceId = "last-known-device-id",
+            deviceSecret = "last-known-device-secret",
             pairedAtEpochMs = 100L,
         )
 
@@ -60,11 +59,11 @@ class NativeRegistrationRequestMapperTest {
     fun map_withoutWebPushKeys_leavesThemNull() {
         val pairing = PairingData(
             subscriberId = "subscriber-id",
-            subscriberHash = "subscriber-hash",
             serverUrl = "https://server.example.com",
             registrationUrl = "https://server.example.com/api/notifications/native/register",
             pairingToken = "pairing-token",
             deviceId = "last-known-device-id",
+            deviceSecret = "last-known-device-secret",
             pairedAtEpochMs = 100L,
         )
 
@@ -72,23 +71,5 @@ class NativeRegistrationRequestMapperTest {
 
         assertNull(request.p256dh)
         assertNull(request.auth)
-    }
-
-    @Test
-    fun map_blankSubscriberHash_becomesNull() {
-        val pairing = PairingData(
-            subscriberId = "subscriber-id",
-            subscriberHash = "",
-            serverUrl = "https://server.example.com",
-            registrationUrl = "https://server.example.com/api/notifications/native/register",
-            pairingToken = "pairing-token",
-            deviceId = null,
-            pairedAtEpochMs = 100L,
-        )
-
-        val request = NativeRegistrationRequestMapper.map(pairing = pairing, token = "fcm-token")
-
-        assertNull(request.subscriberHash)
-        assertNull(request.deviceId)
     }
 }

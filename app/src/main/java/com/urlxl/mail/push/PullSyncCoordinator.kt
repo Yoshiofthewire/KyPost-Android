@@ -39,6 +39,9 @@ class PullSyncCoordinator(
     suspend fun pullOnce(): PullOutcome {
         val state = repository.state.first()
         val pairing = state.pairing ?: return PullOutcome.NotPaired
+        val deviceId = pairing.deviceId
+        val deviceSecret = pairing.deviceSecret
+        if (deviceId.isNullOrBlank() || deviceSecret.isNullOrBlank()) return PullOutcome.NotPaired
 
         // Keep the periodic worker armed only while we're actually in pull mode.
         syncPeriodicSchedule(state.deliveryMode)
@@ -49,8 +52,8 @@ class PullSyncCoordinator(
 
         return when (val result = pullClient.pull(
             pullEndpoint = endpoint,
-            subscriberId = pairing.subscriberId,
-            subscriberHash = pairing.subscriberHash,
+            deviceId = deviceId,
+            deviceSecret = deviceSecret,
             afterCursor = cursor,
         )) {
             is PullResult.Success -> handleSuccess(pairing.subscriberId, endpoint, cursor, result.response)

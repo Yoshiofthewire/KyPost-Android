@@ -15,7 +15,7 @@ sealed class PullResult {
     /** 200 with a parsed body. */
     data class Success(val response: PullNotificationsResponse) : PullResult()
 
-    /** 401: bad hash / unknown subscriber. Credentials are wrong — stop hammering. */
+    /** 401: bad secret / unknown device. Credentials are wrong — stop hammering. */
     data class Unauthorized(val message: String) : PullResult()
 
     /** 400: missing pairing credentials. A client bug; don't tight-loop. */
@@ -29,8 +29,8 @@ sealed class PullResult {
 }
 
 /**
- * Talks to `GET <pullEndpoint>?after=`. Auth is sent as X-Kypost-Subscriber-Id/
- * X-Kypost-Subscriber-Hash headers, never query params. Kept parallel to
+ * Talks to `GET <pullEndpoint>?after=`. Auth is sent as X-Kypost-Device-Id/
+ * X-Kypost-Device-Secret headers, never query params. Kept parallel to
  * [NativeRegistrationClient] — same okhttp/serialization stack, no session/bearer.
  */
 class PullNotificationClient(
@@ -42,8 +42,8 @@ class PullNotificationClient(
 ) {
     suspend fun pull(
         pullEndpoint: String,
-        subscriberId: String,
-        subscriberHash: String,
+        deviceId: String,
+        deviceSecret: String,
         afterCursor: Long,
     ): PullResult {
         val base = pullEndpoint.toHttpUrlOrNull()
@@ -54,7 +54,7 @@ class PullNotificationClient(
             .build()
 
         val httpRequest = Request.Builder().url(url).get()
-            .pairingAuthHeaders(subscriberId, subscriberHash)
+            .pairingAuthHeaders(deviceId, deviceSecret)
             .build()
 
         val result = withContext(Dispatchers.IO) {
@@ -74,7 +74,7 @@ class PullNotificationClient(
                 PullResult.Success(body)
             }
             400 -> PullResult.BadRequest("Missing pairing credentials")
-            401 -> PullResult.Unauthorized("Bad hash or unknown subscriber")
+            401 -> PullResult.Unauthorized("Bad secret or unknown device")
             else -> PullResult.Retryable(
                 message = "Pull failed ($code)",
                 retryAfterSeconds = parseRetryAfterSeconds(retryAfter),

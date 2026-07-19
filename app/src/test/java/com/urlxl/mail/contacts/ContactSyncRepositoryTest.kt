@@ -20,11 +20,11 @@ class ContactSyncRepositoryTest {
 
     private val pairing = PairingData(
         subscriberId = "sub-1",
-        subscriberHash = "hash-1",
         serverUrl = "https://relay.example.com",
         registrationUrl = "https://relay.example.com/register",
         pairingToken = "token-1",
         deviceId = "device-1",
+        deviceSecret = "secret-1",
         pairedAtEpochMs = 0L,
     )
 

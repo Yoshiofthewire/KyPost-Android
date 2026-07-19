@@ -2,13 +2,15 @@ package com.urlxl.mail
 
 import okhttp3.Request
 
-const val HEADER_SUBSCRIBER_ID = "X-Kypost-Subscriber-Id"
-const val HEADER_SUBSCRIBER_HASH = "X-Kypost-Subscriber-Hash"
+const val HEADER_DEVICE_ID = "X-Kypost-Device-Id"
+const val HEADER_DEVICE_SECRET = "X-Kypost-Device-Secret"
 
 /**
- * Attaches pairing-auth credentials as headers — the server (already migrated) reads these in
- * preference to the legacy `?sub=&hash=` query params. This app always sends headers now; there
- * is no query-param fallback on the client side.
+ * Attaches this device's own pairing-auth credentials as headers. Replaces the old
+ * account-wide shared subscriberId/subscriberHash headers (removed entirely — the server no
+ * longer accepts them). deviceSecret is minted once per successful registration call and must
+ * be persisted unconditionally by the caller (see SecurePairingStore), since each registration
+ * mints a brand-new secret that invalidates the previous one.
  */
-fun Request.Builder.pairingAuthHeaders(subscriberId: String, subscriberHash: String): Request.Builder =
-    header(HEADER_SUBSCRIBER_ID, subscriberId).header(HEADER_SUBSCRIBER_HASH, subscriberHash)
+fun Request.Builder.pairingAuthHeaders(deviceId: String, deviceSecret: String): Request.Builder =
+    header(HEADER_DEVICE_ID, deviceId).header(HEADER_DEVICE_SECRET, deviceSecret)

@@ -41,7 +41,7 @@ private sealed class HttpMappedResult<out T> {
 }
 
 /**
- * Talks to `/api/contacts/sync`. Auth is sent as X-Kypost-Subscriber-Id/X-Kypost-Subscriber-Hash
+ * Talks to `/api/contacts/sync`. Auth is sent as X-Kypost-Device-Id/X-Kypost-Device-Secret
  * headers (never query params/cookies), kept parallel to
  * [com.urlxl.mail.push.PullNotificationClient] — same okhttp/serialization stack.
  */
@@ -52,43 +52,43 @@ class ContactSyncClient(
     // Mirrors RelayMailSource's callFactory pattern.
     private val callFactory: Call.Factory = OkHttpClient.Builder().build(),
 ) {
-    suspend fun pull(serverUrl: String, subscriberId: String, subscriberHash: String, since: Long): ContactSyncResult {
+    suspend fun pull(serverUrl: String, deviceId: String, deviceSecret: String, since: Long): ContactSyncResult {
         val base = syncUrl(serverUrl) ?: return ContactSyncResult.BadRequest("Server URL is not valid")
         val url = base.newBuilder()
             .addQueryParameter("since", since.coerceAtLeast(0L).toString())
             .build()
         val request = Request.Builder().url(url).get()
-            .pairingAuthHeaders(subscriberId, subscriberHash)
+            .pairingAuthHeaders(deviceId, deviceSecret)
             .build()
         return execute(request)
     }
 
     suspend fun push(
         serverUrl: String,
-        subscriberId: String,
-        subscriberHash: String,
+        deviceId: String,
+        deviceSecret: String,
         baseCursor: Long,
         changes: List<ContactDto>,
     ): ContactSyncResult {
         val base = syncUrl(serverUrl) ?: return ContactSyncResult.BadRequest("Server URL is not valid")
         val body = json.encodeToString(ContactSyncPushRequestDto(baseCursor = baseCursor, changes = changes))
         val request = Request.Builder().url(base).post(body.toRequestBody(JSON_MEDIA_TYPE))
-            .pairingAuthHeaders(subscriberId, subscriberHash)
+            .pairingAuthHeaders(deviceId, deviceSecret)
             .build()
         return execute(request)
     }
 
-    suspend fun dedupe(serverUrl: String, subscriberId: String, subscriberHash: String): ContactDedupeResult {
+    suspend fun dedupe(serverUrl: String, deviceId: String, deviceSecret: String): ContactDedupeResult {
         val base = dedupeUrl(serverUrl) ?: return ContactDedupeResult.BadRequest("Server URL is not valid")
         val request = Request.Builder().url(base).post("".toRequestBody(JSON_MEDIA_TYPE))
-            .pairingAuthHeaders(subscriberId, subscriberHash)
+            .pairingAuthHeaders(deviceId, deviceSecret)
             .build()
         return when (
             val mapped = executeMapped(
                 request = request,
                 decode = { raw -> runCatching { json.decodeFromString<ContactDedupeReportDto>(raw) }.getOrNull() },
                 malformedMessage = "Malformed contact dedupe response",
-                unauthorizedMessage = "Bad hash or unknown subscriber",
+                unauthorizedMessage = "Bad secret or unknown device",
                 serviceUnavailableMessage = "Contact dedupe is not configured on the backend",
                 failureMessagePrefix = "Contact dedupe failed",
             )
@@ -111,7 +111,7 @@ class ContactSyncClient(
                 request = request,
                 decode = { raw -> runCatching { json.decodeFromString<ContactSyncPullResponseDto>(raw) }.getOrNull() },
                 malformedMessage = "Malformed contact sync response",
-                unauthorizedMessage = "Bad hash or unknown subscriber",
+                unauthorizedMessage = "Bad secret or unknown device",
                 serviceUnavailableMessage = "Contact sync is not configured on the backend",
                 failureMessagePrefix = "Contact sync failed",
             )

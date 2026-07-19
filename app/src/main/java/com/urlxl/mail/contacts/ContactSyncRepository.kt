@@ -54,16 +54,19 @@ class ContactSyncRepository(
 
     suspend fun sync(): ContactSyncOutcome = syncMutex.withLock {
         val pairing = pairingProvider() ?: return@withLock ContactSyncOutcome.NotPaired
+        val deviceId = pairing.deviceId
+        val deviceSecret = pairing.deviceSecret
+        if (deviceId.isNullOrBlank() || deviceSecret.isNullOrBlank()) return@withLock ContactSyncOutcome.NotPaired
         val pendingChanges = db.pendingContactChangeDao().getAllPending()
         val cursor = cursorStore.cursor(pairing.subscriberId)
 
         val result = if (pendingChanges.isEmpty()) {
-            client.pull(pairing.serverUrl, pairing.subscriberId, pairing.subscriberHash, cursor)
+            client.pull(pairing.serverUrl, deviceId, deviceSecret, cursor)
         } else {
             client.push(
                 serverUrl = pairing.serverUrl,
-                subscriberId = pairing.subscriberId,
-                subscriberHash = pairing.subscriberHash,
+                deviceId = deviceId,
+                deviceSecret = deviceSecret,
                 baseCursor = cursor,
                 changes = pendingChanges.map(::toWireDto),
             )
@@ -87,7 +90,13 @@ class ContactSyncRepository(
      * the merge's tombstones/survivor land locally.
      */
     suspend fun dedupe(): ContactDedupeOutcome = resolveDedupeOutcome(pairingProvider) { pairing ->
-        client.dedupe(pairing.serverUrl, pairing.subscriberId, pairing.subscriberHash)
+        val deviceId = pairing.deviceId
+        val deviceSecret = pairing.deviceSecret
+        if (deviceId.isNullOrBlank() || deviceSecret.isNullOrBlank()) {
+            ContactDedupeResult.Unauthorized("Device is not registered yet")
+        } else {
+            client.dedupe(pairing.serverUrl, deviceId, deviceSecret)
+        }
     }
 
     /** Creates locally under a temp uid and enqueues the create; reconciled to a server uid on sync. */
