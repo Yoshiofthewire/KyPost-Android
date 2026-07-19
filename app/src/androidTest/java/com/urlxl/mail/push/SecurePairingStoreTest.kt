@@ -63,4 +63,39 @@ class SecurePairingStoreTest {
         assertFalse(rawContents.contains(pairing.pairingToken))
         assertFalse(rawContents.contains(pairing.subscriberId))
     }
+
+    /**
+     * Regression test for a real production crash: the Keystore-backed key can stop being able to
+     * decrypt the on-disk Tink keyset (observed as `AEADBadTagException` from
+     * `EncryptedSharedPreferences.create`), which happens inside [SecurePairingStore]'s init path —
+     * uncaught, that crashed the app on every single launch. Simulates the same failure mode by
+     * corrupting the on-disk keyset directly (flipping its ciphertext/tag rather than waiting for a
+     * real Keystore invalidation event, which isn't triggerable on demand) and asserts the store
+     * recovers instead of throwing: it must report `pairing == null` and still be fully usable
+     * afterward, matching [buildEncryptedPrefs]'s wipe-and-recreate fallback.
+     */
+    @Test
+    fun corruptedKeyset_doesNotCrash_resetsToUnpairedAndStaysUsable() = runBlocking {
+        SecurePairingStore(context).savePairing(pairing)
+
+        val rawPrefs = context.getSharedPreferences("push_pairing_secure", android.content.Context.MODE_PRIVATE)
+        val valueKeysetKey = "__androidx_security_crypto_encrypted_prefs_value_keyset__"
+        val originalKeyset = rawPrefs.getString(valueKeysetKey, null)
+        assertTrue("expected an existing value keyset to corrupt", !originalKeyset.isNullOrEmpty())
+        val corrupted = originalKeyset!!.toCharArray().also { chars ->
+            // Flip a handful of chars mid-string so the keyset is still non-blank but its AEAD
+            // ciphertext/tag no longer verifies against the real Keystore key.
+            for (i in chars.indices step 7) chars[i] = if (chars[i] == 'A') 'B' else 'A'
+        }.concatToString()
+        rawPrefs.edit().putString(valueKeysetKey, corrupted).commit()
+
+        // Must not throw despite the corrupted keyset (this line crashed before the fix).
+        val recovered = SecurePairingStore(context)
+
+        assertNull("corrupted store should read back as unpaired, not stale/garbage data", recovered.pairing.value)
+
+        // The reset must leave a genuinely working store behind, not just a non-crashing shell.
+        recovered.savePairing(pairing)
+        assertEquals(pairing, SecurePairingStore(context).pairing.value)
+    }
 }
