@@ -6,7 +6,7 @@
 
 ## Tasks
 
-- [ ] Task 1: Shared `pairingAuthHeaders()` extension helper
+- [x] Task 1: Shared `pairingAuthHeaders()` extension helper
 - [ ] Task 2: `RelayMailSource.kt`
 - [ ] Task 3: `ContactSyncClient.kt`
 - [ ] Task 4: `GroupsSyncClient.kt`
@@ -32,4 +32,4 @@
 
 ## Completed
 
-(none yet)
+- Task 1: complete (commits 67022f4..3d71f8f, review clean, no findings).
