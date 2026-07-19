@@ -15,6 +15,7 @@ import com.urlxl.mail.contacts.device.DeviceContactMappers.toDto
 import com.urlxl.mail.data.AppDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
@@ -27,7 +28,9 @@ class DeviceContactRepository(
     private val contentResolver = context.contentResolver
     private val groupLinker = DeviceGroupLinker(context, db)
 
-    suspend fun syncAll() {
+    // Shares syncRepository.syncMutex with ContactSyncRepository.sync() — see that mutex's KDoc
+    // for why: both sides read-modify-write the same contacts table from independent scopes.
+    suspend fun syncAll() = syncRepository.syncMutex.withLock {
         try {
             groupSyncRepository.sync()
             reconcileGroupRenames()

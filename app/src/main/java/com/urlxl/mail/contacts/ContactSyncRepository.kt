@@ -5,6 +5,8 @@ import com.urlxl.mail.data.ContactEntity
 import com.urlxl.mail.data.PendingContactChangeEntity
 import com.urlxl.mail.push.PairingData
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.UUID
@@ -40,10 +42,18 @@ class ContactSyncRepository(
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
+    /** Guards the whole contacts table against concurrent sync writers: this repository and
+     *  [com.urlxl.mail.contacts.device.DeviceContactRepository] run on independent coroutine
+     *  scopes with no other ordering between them, and [com.urlxl.mail.data.ContactDao.upsertAll]
+     *  replaces whole rows — so an interleaved read-modify-write from one side can silently
+     *  overwrite a field (e.g. `isSelf`) the other side just wrote. Held by [sync] here and by
+     *  `DeviceContactRepository.syncAll`. */
+    val syncMutex = Mutex()
+
     fun observeContacts(): Flow<List<ContactEntity>> = db.contactDao().observeAll()
 
-    suspend fun sync(): ContactSyncOutcome {
-        val pairing = pairingProvider() ?: return ContactSyncOutcome.NotPaired
+    suspend fun sync(): ContactSyncOutcome = syncMutex.withLock {
+        val pairing = pairingProvider() ?: return@withLock ContactSyncOutcome.NotPaired
         val pendingChanges = db.pendingContactChangeDao().getAllPending()
         val cursor = cursorStore.cursor(pairing.subscriberId)
 
@@ -59,7 +69,7 @@ class ContactSyncRepository(
             )
         }
 
-        return when (result) {
+        when (result) {
             is ContactSyncResult.Success -> {
                 applyDelta(pairing.subscriberId, result.response, pendingChanges)
                 ContactSyncOutcome.Success
