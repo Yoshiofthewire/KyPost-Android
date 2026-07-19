@@ -9,6 +9,7 @@ import android.provider.MediaStore
 import android.text.TextUtils
 import android.view.View
 import android.webkit.WebView
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -30,7 +31,10 @@ class EmailDetailActivity : AppCompatActivity() {
     private lateinit var actionButtons: List<ImageButton>
     private lateinit var divider: View
     private lateinit var webView: WebView
+    private lateinit var imagesBlockedBar: View
+    private lateinit var btnShowImages: Button
     private var lastAppliedThemeName: String = ""
+    private var lastRenderedHtml: String? = null
 
     private var toRecipients: List<String> = emptyList()
     private var ccRecipients: List<String> = emptyList()
@@ -57,6 +61,8 @@ class EmailDetailActivity : AppCompatActivity() {
         val fromView = findViewById<TextView>(R.id.emailFrom)
         webView = findViewById(R.id.emailWebView)
         divider = findViewById(R.id.emailDivider)
+        imagesBlockedBar = findViewById(R.id.emailImagesBlockedBar)
+        btnShowImages = findViewById(R.id.btnShowImages)
         val loading = findViewById<ProgressBar>(R.id.emailBodyLoading)
 
         subjectView.text = emailSubject
@@ -124,12 +130,24 @@ class EmailDetailActivity : AppCompatActivity() {
             useWideViewPort = true
             loadWithOverviewMode = true
             defaultTextEncodingName = "utf-8"
+            // Senders can embed tracking pixels; loading them automatically leaks the reader's IP
+            // and "message opened" status before they've decided whether to trust the sender.
+            // btnShowImages lets them opt in per-message instead.
+            blockNetworkImage = true
+        }
+        btnShowImages.setOnClickListener {
+            webView.settings.blockNetworkImage = false
+            imagesBlockedBar.visibility = View.GONE
+            // WebView.reload() doesn't reliably re-fetch a page loaded via loadDataWithBaseURL, so
+            // re-issue the same load now that the setting allows network images through.
+            lastRenderedHtml?.let { html -> webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null) }
         }
 
         ioExecutor.execute {
             val outcome = mailRepository.fetchBody(emailId, emailFolder)
             val content = (outcome as? MailOutcome.Success)?.value
             val bodyToRender = content?.html?.takeIf { it.isNotBlank() } ?: TextUtils.htmlEncode(emailPreview)
+            val hasRemoteImages = REMOTE_IMAGE_PATTERN.containsMatchIn(bodyToRender)
             val palette = getStoredThemePalette(this)
             val monoFontFace = ibmPlexMonoFontFaceCss(this)
 
@@ -160,8 +178,10 @@ class EmailDetailActivity : AppCompatActivity() {
             """.trimIndent()
 
             runOnUiThread {
+                lastRenderedHtml = htmlContent
                 webView.loadDataWithBaseURL(null, htmlContent, "text/html", "utf-8", null)
                 loading.visibility = android.view.View.GONE
+                imagesBlockedBar.visibility = if (hasRemoteImages) View.VISIBLE else View.GONE
                 if (content != null) {
                     toRecipients = content.toAddresses
                     ccRecipients = content.ccAddresses
@@ -294,5 +314,10 @@ class EmailDetailActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_REMOVED_EMAIL_ID = "removed_email_id"
+
+        /** Cheap heuristic for "does this body reference a remote image" — only used to decide
+         *  whether the "Show images" bar is worth showing, not a security control itself (images
+         *  are always blocked regardless via [android.webkit.WebSettings.setBlockNetworkImage]). */
+        private val REMOTE_IMAGE_PATTERN = Regex("""<img\b[^>]*\ssrc\s*=\s*["']https?://""", RegexOption.IGNORE_CASE)
     }
 }
