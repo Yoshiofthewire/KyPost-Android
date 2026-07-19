@@ -1624,12 +1624,20 @@ In `onCreate`, alongside the other section wiring:
                 valueField.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
                 labelField.setText(item.label.orEmpty())
                 valueField.setText(item.value)
-                labelField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(label = labelField.text.toString().trim().ifBlank { null }))
-                })
-                valueField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(value = valueField.text.toString().trim()))
-                })
+                // Both fields must read from each other's *live* text, not the bind-time item
+                // snapshot — two separate listeners each doing item.copy(singleField = ...) would
+                // silently drop whichever field was edited first the next time the other field
+                // fires (each closes over the same stale item).
+                val emit: () -> Unit = {
+                    onItemChanged(
+                        item.copy(
+                            label = labelField.text.toString().trim().ifBlank { null },
+                            value = valueField.text.toString().trim(),
+                        ),
+                    )
+                }
+                labelField.addTextChangedListener(SimpleTextWatcher(emit))
+                valueField.addTextChangedListener(SimpleTextWatcher(emit))
             },
             isBlank = { it.label.isNullOrBlank() && it.value.isBlank() },
             default = { ContactFieldDto() },
@@ -1648,12 +1656,16 @@ In `onCreate`, alongside the other section wiring:
                 valueField.inputType = android.text.InputType.TYPE_CLASS_PHONE
                 labelField.setText(item.label.orEmpty())
                 valueField.setText(item.value)
-                labelField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(label = labelField.text.toString().trim().ifBlank { null }))
-                })
-                valueField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(value = valueField.text.toString().trim()))
-                })
+                val emit: () -> Unit = {
+                    onItemChanged(
+                        item.copy(
+                            label = labelField.text.toString().trim().ifBlank { null },
+                            value = valueField.text.toString().trim(),
+                        ),
+                    )
+                }
+                labelField.addTextChangedListener(SimpleTextWatcher(emit))
+                valueField.addTextChangedListener(SimpleTextWatcher(emit))
             },
             isBlank = { it.label.isNullOrBlank() && it.value.isBlank() },
             default = { ContactFieldDto() },
@@ -1969,12 +1981,16 @@ In `onCreate`:
                 valueField.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_URI
                 labelField.setText(item.label.orEmpty())
                 valueField.setText(item.value)
-                labelField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(label = labelField.text.toString().trim().ifBlank { null }))
-                })
-                valueField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(value = valueField.text.toString().trim()))
-                })
+                val emit: () -> Unit = {
+                    onItemChanged(
+                        item.copy(
+                            label = labelField.text.toString().trim().ifBlank { null },
+                            value = valueField.text.toString().trim(),
+                        ),
+                    )
+                }
+                labelField.addTextChangedListener(SimpleTextWatcher(emit))
+                valueField.addTextChangedListener(SimpleTextWatcher(emit))
             },
             isBlank = { it.label.isNullOrBlank() && it.value.isBlank() },
             default = { ContactUrlDto() },
@@ -2172,10 +2188,20 @@ In `onCreate`:
                 dateField.hint = getString(R.string.contacts_event_date_hint)
                 labelField.setText(item.label.orEmpty())
                 dateField.setText(item.date)
-                labelField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(label = labelField.text.toString().trim().ifBlank { null }))
-                })
-                wireDatePicker(dateField) { picked -> onItemChanged(item.copy(date = picked)) }
+                // wireDatePicker's callback fires after field.setText(formatted) already ran (see
+                // wireDatePicker below), so dateField.text is current by the time emit() reads it —
+                // same live-read approach as every other multi-field row, avoiding the stale-item
+                // closure bug (editing the label then picking a date must not drop the label edit).
+                val emit: () -> Unit = {
+                    onItemChanged(
+                        item.copy(
+                            label = labelField.text.toString().trim().ifBlank { null },
+                            date = dateField.text.toString(),
+                        ),
+                    )
+                }
+                labelField.addTextChangedListener(SimpleTextWatcher(emit))
+                wireDatePicker(dateField) { emit() }
             },
             isBlank = { it.label.isNullOrBlank() && it.date.isBlank() },
             default = { ContactEventDto() },
@@ -2193,12 +2219,16 @@ In `onCreate`:
                 valueField.hint = getString(R.string.contacts_relation_row_value_hint)
                 labelField.setText(item.label.orEmpty())
                 valueField.setText(item.name)
-                labelField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(label = labelField.text.toString().trim().ifBlank { null }))
-                })
-                valueField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(name = valueField.text.toString().trim()))
-                })
+                val emit: () -> Unit = {
+                    onItemChanged(
+                        item.copy(
+                            label = labelField.text.toString().trim().ifBlank { null },
+                            name = valueField.text.toString().trim(),
+                        ),
+                    )
+                }
+                labelField.addTextChangedListener(SimpleTextWatcher(emit))
+                valueField.addTextChangedListener(SimpleTextWatcher(emit))
             },
             isBlank = { it.label.isNullOrBlank() && it.name.isBlank() },
             default = { ContactRelationDto() },
@@ -2298,12 +2328,16 @@ In `onCreate`:
                 valueField.hint = getString(R.string.contacts_customfield_row_value_hint)
                 labelField.setText(item.label)
                 valueField.setText(item.value)
-                labelField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(label = labelField.text.toString().trim()))
-                })
-                valueField.addTextChangedListener(SimpleTextWatcher {
-                    onItemChanged(item.copy(value = valueField.text.toString().trim()))
-                })
+                val emit: () -> Unit = {
+                    onItemChanged(
+                        item.copy(
+                            label = labelField.text.toString().trim(),
+                            value = valueField.text.toString().trim(),
+                        ),
+                    )
+                }
+                labelField.addTextChangedListener(SimpleTextWatcher(emit))
+                valueField.addTextChangedListener(SimpleTextWatcher(emit))
             },
             isBlank = { it.label.isBlank() && it.value.isBlank() },
             default = { ContactCustomFieldDto() },
