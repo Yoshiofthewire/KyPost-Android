@@ -213,6 +213,7 @@
     <string name="pgp_qr_scan_invalid">Invalid QR code. Please scan again.</string>
     <string name="pgp_qr_scan_forbidden">Token expired or invalid. Ask the other person to refresh their QR code and scan again.</string>
     <string name="pgp_qr_scan_not_found">This person hasn\'t set up PGP encryption yet.</string>
+    <string name="pgp_qr_scan_unparseable_key">Couldn\'t read this key\'s fingerprint — the key data is invalid or corrupted. Refusing to save it.</string>
     <string name="pgp_qr_scan_unavailable">PGP key exchange is temporarily unavailable on the other person\'s server. Please try again later.</string>
     <string name="pgp_qr_scan_name_label">Name: %1$s</string>
     <string name="pgp_qr_scan_fingerprint_label">Fingerprint: %1$s</string>

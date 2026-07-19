@@ -195,11 +195,22 @@ class PgpKeyActivity : AppCompatActivity() {
     }
 
     private fun showFetchedKey(key: PgpQrKeyDto) {
+        // The server's `fingerprint` field is never used for the confirmation prompt below — it's
+        // just another claim in the same response as `publicKey`, with no cryptographic tie to it.
+        // Computing the fingerprint locally from the key bytes themselves is what makes "confirm
+        // this fingerprint matches" an actual verification instead of a rubber stamp.
+        val localFingerprint = PgpFingerprint.compute(key.publicKey)
+        if (localFingerprint == null) {
+            resetConfirmationState()
+            scanStatusText.text = getString(R.string.pgp_qr_scan_unparseable_key)
+            scanButton.setText(R.string.pgp_qr_scan_scan_again_button)
+            return
+        }
         pendingKey = key
         scanStatusText.text = getString(R.string.pgp_qr_scan_confirm_prompt)
         scanNameText.text = getString(R.string.pgp_qr_scan_name_label, key.name)
         scanNameText.visibility = View.VISIBLE
-        scanFingerprintText.text = getString(R.string.pgp_qr_scan_fingerprint_label, key.fingerprint)
+        scanFingerprintText.text = getString(R.string.pgp_qr_scan_fingerprint_label, localFingerprint)
         scanFingerprintText.visibility = View.VISIBLE
         confirmButton.visibility = View.VISIBLE
         scanButton.setText(R.string.pgp_qr_scan_scan_again_button)
