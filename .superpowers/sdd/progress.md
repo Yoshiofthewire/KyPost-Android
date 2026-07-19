@@ -11,7 +11,7 @@
 - [x] Task 2: `ExpandableSectionView` collapsible container
 - [x] Task 3: Extend `mergedContactDto` for every newly-editable field
 - [x] Task 4: Rewrite `activity_contact_edit.xml` with all sections
-- [ ] Task 5: Wire Name section + read-only `isSelf`/`pgpKey` badges
+- [x] Task 5: Wire Name section + read-only `isSelf`/`pgpKey` badges
 - [ ] Task 6: Wire Work section
 - [ ] Task 7: Wire Contact section (full emails/phones lists)
 - [ ] Task 8: Wire Addresses section
@@ -122,3 +122,18 @@
   compile break; full green isn't expected again until Task 7's checkpoint).
   Noting here so a resume doesn't mistake the current red Kotlin build for a
   regression.
+
+- Task 5: complete (commit `48cb05c`). Review: spec ✅, quality Approved, no
+  Critical/Important issues. Reviewer independently re-ran
+  `compileDebugKotlin` and confirmed exactly the two expected dangling
+  errors, nothing else. Read-only enforcement on `isSelf`/`pgpKey` verified
+  both locally (no listeners on the badges) and structurally
+  (`mergedContactDto` has no parameters for either field at all — not just
+  "unused this task," architecturally unsettable from this screen). Minor,
+  not fixed (plan-mandated, i.e. my own plan text's choice, not implementer
+  error): the pgp badge uses a new string `contacts_pgp_badge_visible`
+  ("PGP key on file") instead of reusing the existing
+  `contact_status_secure_key` ("Secure key") `ContactAdapter.kt` already
+  uses for the identical concept in the contacts list — two different
+  labels for the same thing across two screens. Cosmetic only. Carry to
+  final whole-branch review for triage.
