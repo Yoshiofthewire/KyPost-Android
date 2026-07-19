@@ -1,6 +1,7 @@
 package com.urlxl.mail.contacts
 
 import com.urlxl.mail.executeSync
+import com.urlxl.mail.pairingAuthHeaders
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -19,8 +20,8 @@ sealed class GroupsSyncResult {
 
 /**
  * Talks to `GET /api/groups`. Pull-only (there is no delta cursor — the caller always fetches
- * the full list and full-refreshes its local cache), mirroring [ContactSyncClient]'s `sub`/`hash`
- * query-param auth and HTTP-status-to-result mapping, minus the push/dedupe endpoints this
+ * the full list and full-refreshes its local cache), mirroring [ContactSyncClient]'s X-Kypost-Subscriber-Id/X-Kypost-Subscriber-Hash
+ * header auth and HTTP-status-to-result mapping, minus the push/dedupe endpoints this
  * client has no need for. Two-way group *creation* sync (`POST /api/groups`) is out of scope for
  * this client — see `Client_Contact_Update.md` Part 2 point 3.
  */
@@ -30,11 +31,9 @@ class GroupsSyncClient(
 ) {
     suspend fun pull(serverUrl: String, subscriberId: String, subscriberHash: String): GroupsSyncResult {
         val base = groupsUrl(serverUrl) ?: return GroupsSyncResult.BadRequest("Server URL is not valid")
-        val url = base.newBuilder()
-            .addQueryParameter("sub", subscriberId)
-            .addQueryParameter("hash", subscriberHash)
+        val request = Request.Builder().url(base).get()
+            .pairingAuthHeaders(subscriberId, subscriberHash)
             .build()
-        val request = Request.Builder().url(url).get().build()
 
         val result = withContext(Dispatchers.IO) {
             callFactory.executeSync(request) { response -> response.code to response.body?.string().orEmpty() }
