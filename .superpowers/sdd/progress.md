@@ -11,7 +11,7 @@
 - [x] Task 3: `ContactSyncClient.kt`
 - [x] Task 4: `GroupsSyncClient.kt`
 - [x] Task 5: `PullNotificationClient.kt`
-- [ ] Task 6: `PgpQrClient.kt`
+- [x] Task 6: `PgpQrClient.kt`
 
 ## Notes
 
@@ -44,3 +44,5 @@
   Minor (deferred to final review): PullResult.BadRequest's kdoc at
   PullNotificationClient.kt:21 still says "sub/hash" (still semantically
   correct, just stale terminology, outside this task's mandated scope).
+- Task 6: complete (commits 7364fd8..d744408, review clean, no findings —
+  fetchKey independently confirmed untouched). **All 6 coding tasks complete.**
