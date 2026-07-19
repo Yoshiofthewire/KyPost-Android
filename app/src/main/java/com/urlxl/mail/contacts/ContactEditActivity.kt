@@ -52,6 +52,10 @@ class ContactEditActivity : AppCompatActivity() {
     private lateinit var addressList: RepeatableFieldList<ContactAddressDto>
     private lateinit var websiteList: RepeatableFieldList<ContactUrlDto>
     private lateinit var imList: RepeatableFieldList<ContactImDto>
+    private lateinit var birthdayField: EditText
+    private var birthdayValue: String? = null
+    private lateinit var eventList: RepeatableFieldList<ContactEventDto>
+    private lateinit var relationList: RepeatableFieldList<ContactRelationDto>
 
     private var existingUid: String = ""
     private var existingRev: Long = 0
@@ -263,6 +267,67 @@ class ContactEditActivity : AppCompatActivity() {
             default = { ContactImDto() },
             onChanged = { findViewById<ExpandableSectionView>(R.id.sectionOnline).setItemCount(websiteList.items().size + imList.items().size) },
         )
+        findViewById<ExpandableSectionView>(R.id.sectionPersonal).setTitle(getString(R.string.contacts_section_personal))
+        birthdayField = findViewById(R.id.editContactBirthday)
+        wireDatePicker(birthdayField) { picked -> birthdayValue = picked }
+        eventList = RepeatableFieldList(
+            container = findViewById(R.id.eventRowsContainer),
+            addButton = findViewById(R.id.btnAddEvent),
+            rowLayoutRes = R.layout.row_contact_event,
+            removeButtonId = R.id.rowEventRemove,
+            bind = { rowView, item, onItemChanged ->
+                val labelField = rowView.findViewById<EditText>(R.id.rowEventLabel)
+                val dateField = rowView.findViewById<EditText>(R.id.rowEventDate)
+                labelField.hint = getString(R.string.contacts_event_label_hint)
+                dateField.hint = getString(R.string.contacts_event_date_hint)
+                labelField.setText(item.label.orEmpty())
+                dateField.setText(item.date)
+                // wireDatePicker's callback fires after field.setText(formatted) already ran (see
+                // wireDatePicker below), so dateField.text is current by the time emit() reads it —
+                // same live-read approach as every other multi-field row, avoiding the stale-item
+                // closure bug (editing the label then picking a date must not drop the label edit).
+                val emit: () -> Unit = {
+                    onItemChanged(
+                        item.copy(
+                            label = labelField.text.toString().trim().ifBlank { null },
+                            date = dateField.text.toString(),
+                        ),
+                    )
+                }
+                labelField.addTextChangedListener(SimpleTextWatcher(emit))
+                wireDatePicker(dateField) { emit() }
+            },
+            isBlank = { it.label.isNullOrBlank() && it.date.isBlank() },
+            default = { ContactEventDto() },
+            onChanged = { findViewById<ExpandableSectionView>(R.id.sectionPersonal).setItemCount(eventList.items().size + relationList.items().size) },
+        )
+        relationList = RepeatableFieldList(
+            container = findViewById(R.id.relationRowsContainer),
+            addButton = findViewById(R.id.btnAddRelation),
+            rowLayoutRes = R.layout.row_contact_two_field,
+            removeButtonId = R.id.rowFieldRemove,
+            bind = { rowView, item, onItemChanged ->
+                val labelField = rowView.findViewById<EditText>(R.id.rowFieldA)
+                val valueField = rowView.findViewById<EditText>(R.id.rowFieldB)
+                labelField.hint = getString(R.string.contacts_relation_row_label_hint)
+                valueField.hint = getString(R.string.contacts_relation_row_value_hint)
+                labelField.setText(item.label.orEmpty())
+                valueField.setText(item.name)
+                val emit: () -> Unit = {
+                    onItemChanged(
+                        item.copy(
+                            label = labelField.text.toString().trim().ifBlank { null },
+                            name = valueField.text.toString().trim(),
+                        ),
+                    )
+                }
+                labelField.addTextChangedListener(SimpleTextWatcher(emit))
+                valueField.addTextChangedListener(SimpleTextWatcher(emit))
+            },
+            isBlank = { it.label.isNullOrBlank() && it.name.isBlank() },
+            default = { ContactRelationDto() },
+            onChanged = { findViewById<ExpandableSectionView>(R.id.sectionPersonal).setItemCount(eventList.items().size + relationList.items().size) },
+        )
         saveButton = findViewById(R.id.btnSaveContact)
         deleteButton = findViewById(R.id.btnDeleteContact)
 
@@ -341,6 +406,14 @@ class ContactEditActivity : AppCompatActivity() {
             imList.setItems(dto.ims)
             findViewById<ExpandableSectionView>(R.id.sectionOnline).setExpanded(dto.websites.isNotEmpty() || dto.ims.isNotEmpty())
             findViewById<ExpandableSectionView>(R.id.sectionOnline).setItemCount(dto.websites.size + dto.ims.size)
+            birthdayValue = dto.birthday
+            birthdayField.setText(dto.birthday.orEmpty())
+            eventList.setItems(dto.events)
+            relationList.setItems(dto.relations)
+            findViewById<ExpandableSectionView>(R.id.sectionPersonal).setExpanded(
+                dto.birthday != null || dto.events.isNotEmpty() || dto.relations.isNotEmpty(),
+            )
+            findViewById<ExpandableSectionView>(R.id.sectionPersonal).setItemCount(dto.events.size + dto.relations.size)
         }
     }
 
@@ -365,14 +438,14 @@ class ContactEditActivity : AppCompatActivity() {
             title = titleField.text.toString().trim().ifBlank { null },
             department = departmentField.text.toString().trim().ifBlank { null },
             notes = notesField.text.toString().trim().ifBlank { null },
-            birthday = null,
+            birthday = birthdayValue,
             emails = emailList.items(),
             phones = phoneList.items(),
             addresses = addressList.items(),
             websites = websiteList.items(),
             ims = imList.items(),
-            relations = emptyList(),
-            events = emptyList(),
+            relations = relationList.items(),
+            events = eventList.items(),
             phoneticGivenName = phoneticGivenNameField.text.toString().trim().ifBlank { null },
             phoneticFamilyName = phoneticFamilyNameField.text.toString().trim().ifBlank { null },
             customFields = emptyList(),
@@ -402,6 +475,34 @@ class ContactEditActivity : AppCompatActivity() {
             graph.repository.queueDelete(existingUid, existingRev)
             graph.coordinator.syncNowAsync()
             finish()
+        }
+    }
+
+    /** Wires [field] to open a [android.app.DatePickerDialog] on tap, pre-filled from [field]'s
+     *  current `yyyy-MM-dd` text if present (else today), writing the picked date back as
+     *  `yyyy-MM-dd` and invoking [onPicked]. [field] must have `focusable="false"` (see the row/
+     *  section layouts) so tapping it opens the picker instead of the soft keyboard. */
+    private fun wireDatePicker(field: EditText, onPicked: (String) -> Unit) {
+        field.setOnClickListener {
+            val calendar = java.util.Calendar.getInstance()
+            val existing = field.text.toString().trim()
+            if (existing.isNotBlank()) {
+                runCatching {
+                    val parts = existing.split("-").map { it.toInt() }
+                    calendar.set(parts[0], parts[1] - 1, parts[2])
+                }
+            }
+            android.app.DatePickerDialog(
+                this,
+                { _, year, month, dayOfMonth ->
+                    val formatted = "%04d-%02d-%02d".format(year, month + 1, dayOfMonth)
+                    field.setText(formatted)
+                    onPicked(formatted)
+                },
+                calendar.get(java.util.Calendar.YEAR),
+                calendar.get(java.util.Calendar.MONTH),
+                calendar.get(java.util.Calendar.DAY_OF_MONTH),
+            ).show()
         }
     }
 
