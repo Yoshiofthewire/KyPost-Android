@@ -16,7 +16,7 @@
 - [x] Task 7: Wire Contact section (full emails/phones lists)
 - [x] Task 8: Wire Addresses section
 - [x] Task 9: Wire Online section (websites + IMs)
-- [ ] Task 10: Wire Personal section (birthday, events, relations)
+- [x] Task 10: Wire Personal section (birthday, events, relations)
 - [ ] Task 11: Wire Notes relocation + Other section (custom fields)
 - [ ] Task 12: Manual on-device verification
 
@@ -183,3 +183,16 @@
   lists (websites, IMs) correctly sum into one `sectionOnline` item count
   from both lists' `onChanged` callbacks. Independent `compileDebugKotlin`
   re-run: `BUILD SUCCESSFUL`.
+
+- Task 10: complete (commit `281613f`). Review: spec ✅, quality Approved,
+  zero findings — the most delicate remaining task (date-picker-via-shared-
+  closure for the events row) came through clean. Reviewer specifically
+  quoted `wireDatePicker` and confirmed `field.setText(formatted)` runs
+  before `onPicked(formatted)`, which is what makes the events row's
+  `wireDatePicker(dateField) { emit() }` safe (not an isolated
+  `item.copy(date = picked)`, which would have reintroduced the
+  stale-closure bug in a new shape). Confirmed no manual-date-entry path
+  exists anywhere (both date fields non-focusable/clickable-only, no
+  TextWatcher on either). `ContactRelationDto.name`/`ContactEventDto.date`
+  non-nullable handling correctly distinguished from nullable `label`.
+  Independent `compileDebugKotlin` re-run: `BUILD SUCCESSFUL`.
