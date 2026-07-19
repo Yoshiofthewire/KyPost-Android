@@ -72,4 +72,34 @@ class NativePairingDeepLinkParserTest {
 
         assertTrue(result is PairingParseResult.Error)
     }
+
+    @Test
+    fun parse_httpServerUrl_returnsError() {
+        val result = NativePairingDeepLinkParser.parse(
+            "llamalabels://native-pair?sub=a&hash=b&srv=http%3A%2F%2Fserver.example.com&pt=c",
+        )
+
+        assertTrue(result is PairingParseResult.Error)
+        assertEquals("Server URL must use https", (result as PairingParseResult.Error).reason)
+    }
+
+    @Test
+    fun parse_httpRegistrationUrl_returnsError() {
+        val result = NativePairingDeepLinkParser.parse(
+            "llamalabels://native-pair?sub=a&hash=b&srv=https%3A%2F%2Fserver.example.com" +
+                "&reg=http%3A%2F%2Fserver.example.com%2Fregister&pt=c",
+        )
+
+        assertTrue(result is PairingParseResult.Error)
+        assertEquals("Registration URL must use https", (result as PairingParseResult.Error).reason)
+    }
+
+    @Test
+    fun parse_schemelessServerUrl_returnsError() {
+        val result = NativePairingDeepLinkParser.parse(
+            "llamalabels://native-pair?sub=a&hash=b&srv=server.example.com&pt=c",
+        )
+
+        assertTrue(result is PairingParseResult.Error)
+    }
 }

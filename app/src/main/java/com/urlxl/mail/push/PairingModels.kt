@@ -80,6 +80,15 @@ object NativePairingDeepLinkParser {
         if (srv.isBlank()) {
             return PairingParseResult.Error("Missing server URL")
         }
+        // The server is arbitrary (self-hosted relays, no fixed domain to allowlist), so https-only
+        // is the one property we can enforce — it stops a plain-http deep link/QR from pointing the
+        // device's pairing token and subscriber credentials at an unencrypted, spoofable endpoint.
+        if (!isHttpsUrl(srv)) {
+            return PairingParseResult.Error("Server URL must use https")
+        }
+        if (reg != null && !isHttpsUrl(reg)) {
+            return PairingParseResult.Error("Registration URL must use https")
+        }
 
         return PairingParseResult.Success(
             PairingData(
@@ -109,5 +118,10 @@ object NativePairingDeepLinkParser {
 
     private fun decode(value: String): String {
         return URLDecoder.decode(value, StandardCharsets.UTF_8.name())
+    }
+
+    private fun isHttpsUrl(value: String): Boolean {
+        val parsed = runCatching { URI(value) }.getOrNull() ?: return false
+        return parsed.scheme.equals("https", ignoreCase = true) && !parsed.host.isNullOrBlank()
     }
 }

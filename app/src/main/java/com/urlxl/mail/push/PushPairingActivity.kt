@@ -193,19 +193,7 @@ class PushPairingActivity : AppCompatActivity() {
 
     private fun consumeDeepLink(intent: android.content.Intent?) {
         val data = intent?.dataString ?: return
-        when (val parsed = NativePairingDeepLinkParser.parse(data)) {
-            is PairingParseResult.Error -> Toast.makeText(this, parsed.reason, Toast.LENGTH_SHORT).show()
-            is PairingParseResult.Success -> confirmAndApplyDeepLinkPairing(parsed.pairing)
-        }
-    }
-
-    private fun confirmAndApplyDeepLinkPairing(pairing: PairingData) {
-        AlertDialog.Builder(this)
-            .setTitle(R.string.pairing_confirm_title)
-            .setMessage(getString(R.string.pairing_confirm_message, pairing.serverUrl))
-            .setPositiveButton(R.string.pairing_confirm_positive) { _, _ -> viewModel.applyDeepLinkPairing(pairing) }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
+        handleParsedPairing(NativePairingDeepLinkParser.parse(data), alwaysConfirm = true)
     }
 
     private fun scanQr() {
@@ -215,12 +203,38 @@ class PushPairingActivity : AppCompatActivity() {
                 result.rawValue.orEmpty()
             }.onSuccess { raw ->
                 if (raw.isNotBlank()) {
-                    viewModel.pairFromLink(raw)
+                    handleParsedPairing(NativePairingDeepLinkParser.parse(raw), alwaysConfirm = false)
                 }
             }.onFailure {
                 Toast.makeText(this@PushPairingActivity, "QR scan canceled or failed", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun handleParsedPairing(parsed: PairingParseResult, alwaysConfirm: Boolean) {
+        when (parsed) {
+            is PairingParseResult.Error -> Toast.makeText(this, parsed.reason, Toast.LENGTH_SHORT).show()
+            is PairingParseResult.Success -> confirmAndApplyPairing(parsed.pairing, alwaysConfirm)
+        }
+    }
+
+    /** Deep links can fire from any app with zero user awareness, so they always confirm the
+     *  destination server before pairing. QR scans are a deliberate physical action and skip that
+     *  prompt when the device isn't paired yet — but if a pairing already exists, silently
+     *  replacing its server (regardless of how the new pairing arrived) gets the same prompt. */
+    private fun confirmAndApplyPairing(pairing: PairingData, alwaysConfirm: Boolean) {
+        val alreadyPaired = viewModel.uiState.value.pairing != null
+        if (!alwaysConfirm && !alreadyPaired) {
+            viewModel.applyPairing(pairing)
+            return
+        }
+        val messageRes = if (alreadyPaired) R.string.pairing_confirm_replace_message else R.string.pairing_confirm_message
+        AlertDialog.Builder(this)
+            .setTitle(R.string.pairing_confirm_title)
+            .setMessage(getString(messageRes, pairing.serverUrl))
+            .setPositiveButton(R.string.pairing_confirm_positive) { _, _ -> viewModel.applyPairing(pairing) }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private inner class PushHistoryAdapter(context: android.content.Context) : BaseAdapter() {

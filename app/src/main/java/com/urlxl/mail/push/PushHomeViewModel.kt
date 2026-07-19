@@ -65,26 +65,10 @@ class PushHomeViewModel(application: Application) : AndroidViewModel(application
         localMessage.value = null
     }
 
-    fun pairFromLink(link: String) {
-        scope.launch {
-            isWorking.value = true
-            val parsed = NativePairingDeepLinkParser.parse(link)
-            when (parsed) {
-                is PairingParseResult.Error -> {
-                    localMessage.value = parsed.reason
-                    isWorking.value = false
-                }
-                is PairingParseResult.Success -> applyParsedPairing(parsed.pairing)
-            }
-        }
-    }
-
-    /** Applies a deep-link pairing the user has already confirmed via the
-     *  destination-server dialog in PushPairingActivity — unlike [pairFromLink]
-     *  (QR scan, itself a deliberate user action), a deep link can fire from any
-     *  app with zero user awareness, so it requires that separate confirmation
-     *  step before reaching this. */
-    fun applyDeepLinkPairing(pairing: PairingData) {
+    /** Applies a pairing (from a deep link or a QR scan) that PushPairingActivity has already
+     *  parsed and, per its own confirmation rules, either confirmed with the user or determined
+     *  didn't need confirmation. */
+    fun applyPairing(pairing: PairingData) {
         scope.launch {
             isWorking.value = true
             applyParsedPairing(pairing)
