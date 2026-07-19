@@ -33,8 +33,6 @@ class ContactEditActivity : AppCompatActivity() {
     private lateinit var orgField: EditText
     private lateinit var titleField: EditText
     private lateinit var departmentField: EditText
-    private lateinit var emailField: EditText
-    private lateinit var phoneField: EditText
     private lateinit var notesField: EditText
     private lateinit var saveButton: Button
     private lateinit var deleteButton: Button
@@ -49,11 +47,11 @@ class ContactEditActivity : AppCompatActivity() {
     private lateinit var pronounsField: EditText
     private lateinit var selfBadge: Chip
     private lateinit var pgpBadge: Chip
+    private lateinit var emailList: RepeatableFieldList<ContactFieldDto>
+    private lateinit var phoneList: RepeatableFieldList<ContactFieldDto>
 
     private var existingUid: String = ""
     private var existingRev: Long = 0
-    private var extraEmails: List<ContactFieldDto> = emptyList()
-    private var extraPhones: List<ContactFieldDto> = emptyList()
 
     /** The full contact as loaded from Room, including every field this single-screen editor has
      *  no UI for (structured name parts, addresses, ims, websites, relations, events, phonetic
@@ -77,8 +75,6 @@ class ContactEditActivity : AppCompatActivity() {
         orgField = findViewById(R.id.editContactOrg)
         titleField = findViewById(R.id.editContactTitle)
         departmentField = findViewById(R.id.editContactDepartment)
-        emailField = findViewById(R.id.editContactEmail)
-        phoneField = findViewById(R.id.editContactPhone)
         notesField = findViewById(R.id.editContactNotes)
         givenNameField = findViewById(R.id.editContactGivenName)
         familyNameField = findViewById(R.id.editContactFamilyName)
@@ -94,6 +90,67 @@ class ContactEditActivity : AppCompatActivity() {
         findViewById<ExpandableSectionView>(R.id.sectionName).setTitle(getString(R.string.contacts_section_name))
         findViewById<ExpandableSectionView>(R.id.sectionName).setExpanded(true)
         findViewById<ExpandableSectionView>(R.id.sectionWork).setTitle(getString(R.string.contacts_section_work))
+        findViewById<ExpandableSectionView>(R.id.sectionContact).setTitle(getString(R.string.contacts_section_contact))
+        emailList = RepeatableFieldList(
+            container = findViewById(R.id.emailRowsContainer),
+            addButton = findViewById(R.id.btnAddEmail),
+            rowLayoutRes = R.layout.row_contact_two_field,
+            removeButtonId = R.id.rowFieldRemove,
+            bind = { rowView, item, onItemChanged ->
+                val labelField = rowView.findViewById<EditText>(R.id.rowFieldA)
+                val valueField = rowView.findViewById<EditText>(R.id.rowFieldB)
+                labelField.hint = getString(R.string.contacts_email_row_label_hint)
+                valueField.hint = getString(R.string.contacts_email_row_value_hint)
+                valueField.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+                labelField.setText(item.label.orEmpty())
+                valueField.setText(item.value)
+                // Both fields must read from each other's *live* text, not the bind-time item
+                // snapshot — two separate listeners each doing item.copy(singleField = ...) would
+                // silently drop whichever field was edited first the next time the other field
+                // fires (each closes over the same stale item).
+                val emit: () -> Unit = {
+                    onItemChanged(
+                        item.copy(
+                            label = labelField.text.toString().trim().ifBlank { null },
+                            value = valueField.text.toString().trim(),
+                        ),
+                    )
+                }
+                labelField.addTextChangedListener(SimpleTextWatcher(emit))
+                valueField.addTextChangedListener(SimpleTextWatcher(emit))
+            },
+            isBlank = { it.label.isNullOrBlank() && it.value.isBlank() },
+            default = { ContactFieldDto() },
+            onChanged = { findViewById<ExpandableSectionView>(R.id.sectionContact).setItemCount(emailList.items().size + phoneList.items().size) },
+        )
+        phoneList = RepeatableFieldList(
+            container = findViewById(R.id.phoneRowsContainer),
+            addButton = findViewById(R.id.btnAddPhone),
+            rowLayoutRes = R.layout.row_contact_two_field,
+            removeButtonId = R.id.rowFieldRemove,
+            bind = { rowView, item, onItemChanged ->
+                val labelField = rowView.findViewById<EditText>(R.id.rowFieldA)
+                val valueField = rowView.findViewById<EditText>(R.id.rowFieldB)
+                labelField.hint = getString(R.string.contacts_phone_row_label_hint)
+                valueField.hint = getString(R.string.contacts_phone_row_value_hint)
+                valueField.inputType = android.text.InputType.TYPE_CLASS_PHONE
+                labelField.setText(item.label.orEmpty())
+                valueField.setText(item.value)
+                val emit: () -> Unit = {
+                    onItemChanged(
+                        item.copy(
+                            label = labelField.text.toString().trim().ifBlank { null },
+                            value = valueField.text.toString().trim(),
+                        ),
+                    )
+                }
+                labelField.addTextChangedListener(SimpleTextWatcher(emit))
+                valueField.addTextChangedListener(SimpleTextWatcher(emit))
+            },
+            isBlank = { it.label.isNullOrBlank() && it.value.isBlank() },
+            default = { ContactFieldDto() },
+            onChanged = { findViewById<ExpandableSectionView>(R.id.sectionContact).setItemCount(emailList.items().size + phoneList.items().size) },
+        )
         saveButton = findViewById(R.id.btnSaveContact)
         deleteButton = findViewById(R.id.btnDeleteContact)
 
@@ -158,13 +215,13 @@ class ContactEditActivity : AppCompatActivity() {
                 pgpBadge.text = getString(R.string.contacts_pgp_badge_visible)
                 applyStatusBadgeTheme(this@ContactEditActivity, pgpBadge, active = true)
             }
-            emailField.setText(dto.emails.firstOrNull()?.value.orEmpty())
-            phoneField.setText(dto.phones.firstOrNull()?.value.orEmpty())
-            extraEmails = dto.emails.drop(1)
-            extraPhones = dto.phones.drop(1)
             findViewById<ExpandableSectionView>(R.id.sectionWork).setExpanded(
                 dto.org != null || dto.title != null || dto.department != null,
             )
+            emailList.setItems(dto.emails)
+            phoneList.setItems(dto.phones)
+            findViewById<ExpandableSectionView>(R.id.sectionContact).setExpanded(dto.emails.isNotEmpty() || dto.phones.isNotEmpty())
+            findViewById<ExpandableSectionView>(R.id.sectionContact).setItemCount(dto.emails.size + dto.phones.size)
         }
     }
 
@@ -174,11 +231,6 @@ class ContactEditActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.contacts_name_required, Toast.LENGTH_SHORT).show()
             return
         }
-        val email = emailField.text.toString().trim()
-        val phone = phoneField.text.toString().trim()
-        val emails = (if (email.isNotBlank()) listOf(ContactFieldDto(value = email)) else emptyList()) + extraEmails
-        val phones = (if (phone.isNotBlank()) listOf(ContactFieldDto(value = phone)) else emptyList()) + extraPhones
-
         val dto = mergedContactDto(
             loaded = loadedDto,
             uid = existingUid,
@@ -195,8 +247,8 @@ class ContactEditActivity : AppCompatActivity() {
             department = departmentField.text.toString().trim().ifBlank { null },
             notes = notesField.text.toString().trim().ifBlank { null },
             birthday = null,
-            emails = emails,
-            phones = phones,
+            emails = emailList.items(),
+            phones = phoneList.items(),
             addresses = emptyList(),
             ims = emptyList(),
             websites = emptyList(),
@@ -232,6 +284,14 @@ class ContactEditActivity : AppCompatActivity() {
             graph.coordinator.syncNowAsync()
             finish()
         }
+    }
+
+    /** [android.text.TextWatcher] that only cares about the end state, matching every row-field
+     *  use in this Activity (none need before/during-change info). */
+    private class SimpleTextWatcher(private val onChanged: () -> Unit) : android.text.TextWatcher {
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+        override fun afterTextChanged(s: Editable?) = onChanged()
     }
 
     companion object {
