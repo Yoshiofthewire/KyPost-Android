@@ -9,7 +9,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_validDeepLink_extractsRequiredParams() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=subscriber-123&srv=https%3A%2F%2Fserver.example.com" +
+            "kypost://native-pair?sub=subscriber-123&srv=https%3A%2F%2Fserver.example.com" +
                 "&reg=https%3A%2F%2Fserver.example.com%2Fapi%2Fnotifications%2Fnative%2Fregister&pt=short-lived-token",
             nowEpochMs = 123L,
         )
@@ -31,7 +31,7 @@ class NativePairingDeepLinkParserTest {
         // hash= param; it must simply be ignored, not rejected, since it's harmless and the
         // pairingToken alone is what actually gates registration.
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=subscriber-123&hash=stale-hash&srv=https%3A%2F%2Fserver.example.com&pt=token",
+            "kypost://native-pair?sub=subscriber-123&hash=stale-hash&srv=https%3A%2F%2Fserver.example.com&pt=token",
         )
 
         assertTrue(result is PairingParseResult.Success)
@@ -42,7 +42,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_missingReg_leavesRegistrationUrlBlank() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=subscriber-123&srv=https%3A%2F%2Fserver.example.com&pt=token",
+            "kypost://native-pair?sub=subscriber-123&srv=https%3A%2F%2Fserver.example.com&pt=token",
         )
 
         val pairing = (result as PairingParseResult.Success).pairing
@@ -52,7 +52,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_missingPairingToken_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=subscriber-123&srv=https%3A%2F%2Fserver.example.com",
+            "kypost://native-pair?sub=subscriber-123&srv=https%3A%2F%2Fserver.example.com",
         )
 
         assertTrue(result is PairingParseResult.Error)
@@ -62,7 +62,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_missingServerUrl_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=subscriber-123&pt=token",
+            "kypost://native-pair?sub=subscriber-123&pt=token",
         )
 
         assertTrue(result is PairingParseResult.Error)
@@ -72,7 +72,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_legacyNovuPairScheme_isRejected() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://novu-pair?sub=a&srv=https%3A%2F%2Fserver.example.com&pt=c",
+            "kypost://novu-pair?sub=a&srv=https%3A%2F%2Fserver.example.com&pt=c",
         )
 
         assertTrue(result is PairingParseResult.Error)
@@ -81,7 +81,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_invalidHost_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://other-host?sub=a&srv=https%3A%2F%2Fserver.example.com&pt=c",
+            "kypost://other-host?sub=a&srv=https%3A%2F%2Fserver.example.com&pt=c",
         )
 
         assertTrue(result is PairingParseResult.Error)
@@ -90,7 +90,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_httpServerUrl_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=a&srv=http%3A%2F%2Fserver.example.com&pt=c",
+            "kypost://native-pair?sub=a&srv=http%3A%2F%2Fserver.example.com&pt=c",
         )
 
         assertTrue(result is PairingParseResult.Error)
@@ -100,7 +100,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_httpRegistrationUrl_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=a&srv=https%3A%2F%2Fserver.example.com" +
+            "kypost://native-pair?sub=a&srv=https%3A%2F%2Fserver.example.com" +
                 "&reg=http%3A%2F%2Fserver.example.com%2Fregister&pt=c",
         )
 
@@ -111,7 +111,7 @@ class NativePairingDeepLinkParserTest {
     @Test
     fun parse_schemelessServerUrl_returnsError() {
         val result = NativePairingDeepLinkParser.parse(
-            "llamalabels://native-pair?sub=a&srv=server.example.com&pt=c",
+            "kypost://native-pair?sub=a&srv=server.example.com&pt=c",
         )
 
         assertTrue(result is PairingParseResult.Error)

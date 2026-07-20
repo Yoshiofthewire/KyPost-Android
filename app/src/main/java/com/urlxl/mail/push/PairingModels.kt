@@ -55,7 +55,7 @@ object NativePairingDeepLinkParser {
         val uri = runCatching { URI(link.trim()) }.getOrNull()
             ?: return PairingParseResult.Error("Invalid deep link")
 
-        if (!uri.scheme.equals("llamalabels", ignoreCase = true) ||
+        if (!uri.scheme.equals("kypost", ignoreCase = true) ||
             !uri.host.equals("native-pair", ignoreCase = true)
         ) {
             return PairingParseResult.Error("Unsupported deep link")

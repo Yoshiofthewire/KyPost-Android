@@ -16,7 +16,7 @@ KyPost is an Android email client with IMAP inbox read, SMTP send, and keyword-b
 ## Push notification pairing
 
 - Pairs device from a desktop deep link / QR:
-  `llamalabels://native-pair?sub=<subscriberId>&hash=<subscriberHash>&srv=<serverUrl>&reg=<registrationUrl>&pt=<pairingToken>`
+  `kypost://native-pair?sub=<subscriberId>&hash=<subscriberHash>&srv=<serverUrl>&reg=<registrationUrl>&pt=<pairingToken>`
 - Persists pairing proof material (subscriber id/hash, server URL, registration URL, pairing token, last-known device id) in a Keystore-backed `EncryptedSharedPreferences` file — not the plaintext DataStore used for notification history and sync status.
 - Registers the FCM token against the backend's native registration endpoint (`reg` from the QR, or derived as `{srv}/api/notifications/native/register` when `reg` is absent) on pair and on token refresh.
 - Only marks the device as paired once the registration call actually succeeds (`ok:true`/`synced:true`) — scanning a QR alone does not pair the device.
@@ -47,14 +47,14 @@ KyPost is an Android email client with IMAP inbox read, SMTP send, and keyword-b
 ## Pairing from desktop QR
 
 1. Desktop web shows a QR containing the deep link with `sub`, `hash`, `srv`, `pt`, and optionally `reg`.
-2. In the Push Notifications screen, tap **Scan QR Code** (or open the deep link directly, e.g. by tapping it elsewhere on the device — the app registers as a handler for `llamalabels://native-pair`).
+2. In the Push Notifications screen, tap **Scan QR Code** (or open the deep link directly, e.g. by tapping it elsewhere on the device — the app registers as a handler for `kypost://native-pair`).
 3. App validates required params (`sub`, `hash`, `srv`, `pt`) and resolves the registration endpoint.
 4. App calls the native registration endpoint with the FCM token; the device is marked paired only on success.
 5. On later FCM token refreshes, the app repeats the same registration call using the stored pairing.
 
 ## Troubleshooting checklist
 
-- Verify the deep link scheme/host is exactly `llamalabels://native-pair` (the older `llamalabels://novu-pair` scheme is no longer supported).
+- Verify the deep link scheme/host is exactly `kypost://native-pair` (the legacy `novu-pair` host and the old `llamalabels://` scheme prefix are both no longer supported).
 - Verify required query params exist: `sub`, `hash`, `srv`, `pt`.
 - Verify network access to the resolved registration endpoint (`reg`, or `{srv}/api/notifications/native/register`).
 - Verify Firebase project config matches package `com.urlxl.mail`.

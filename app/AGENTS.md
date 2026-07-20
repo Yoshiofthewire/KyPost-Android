@@ -25,7 +25,7 @@ Owns the Android app module build, manifest, source sets, resources, and test ex
 - Pairing proof material lives in a Keystore-backed `EncryptedSharedPreferences` file
   (`SecurePairingStore`), not plaintext DataStore — see `app/src/main/AGENTS.md` for the exact
   storage split. Non-secret sync state (cursors, delivery mode, history) is plaintext DataStore.
-- Deep-link contract for pairing is `llamalabels://native-pair` with required `sub`, `srv`, and
+- Deep-link contract for pairing is `kypost://native-pair` with required `sub`, `srv`, and
   `pt` params (`reg` optional). `hash` is no longer part of the contract — the per-device secret
   is issued only via the registration response, never carried in the pairing QR/deep-link. The
   legacy `novu-pair` scheme is removed entirely.
