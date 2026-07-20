@@ -26,7 +26,7 @@ class RepeatableFieldListTest {
     fun setUp() {
         val context = ContextThemeWrapper(
             InstrumentationRegistry.getInstrumentation().targetContext,
-            R.style.Theme_LlamaMailForAndroid,
+            R.style.Theme_KyPost,
         )
         container = LinearLayout(context)
         addButton = Button(context)

@@ -21,10 +21,10 @@ class ExpandableSectionViewTest {
     // an AppCompat/MaterialComponents theme attribute. The bare instrumentation targetContext isn't
     // themed (it resolves to the plain framework theme), so it fails to inflate with
     // "Failed to resolve attribute" — wrap it in the app's real theme, exactly like every Activity in
-    // this app gets via the manifest's android:theme="@style/Theme.LlamaMailForAndroid".
+    // this app gets via the manifest's android:theme="@style/Theme.KyPost".
     private val context = ContextThemeWrapper(
         InstrumentationRegistry.getInstrumentation().targetContext,
-        R.style.Theme_LlamaMailForAndroid,
+        R.style.Theme_KyPost,
     )
 
     @Test

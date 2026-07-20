@@ -7,7 +7,7 @@
       look that clashed with whichever custom palette was active. Keeping this theme fixed-dark
       and neutral keeps that chrome coherent no matter which in-app palette or system mode is set.
     -->
-    <style name="Theme.LlamaMailForAndroid" parent="Theme.MaterialComponents">
+    <style name="Theme.KyPost" parent="Theme.MaterialComponents">
         <!-- Primary brand color. Also drives AlertDialog button text color (MaterialComponents'
              borderless button style reads colorPrimary directly) since dialogs are the one piece
              of chrome this app doesn't repaint itself — see the note above. Must stay legible
@@ -34,7 +34,7 @@
 
     <!-- Bottom nav has no icons (bottom_nav_menu.xml is label-only), so its default text weight
          reads faint against a full label-only bar; bump it for legibility. -->
-    <style name="TextAppearance.Llama.BottomNavLabel" parent="TextAppearance.MaterialComponents.Caption">
+    <style name="TextAppearance.KyPost.BottomNavLabel" parent="TextAppearance.MaterialComponents.Caption">
         <item name="android:textStyle">bold</item>
     </style>
 
@@ -42,7 +42,7 @@
          textStartPadding + textEndPadding), which pushes the icon left of center on an icon-only
          chip once that label is empty (Compose's formatting toolbar buttons). Zero out the
          text-side gutters and give the icon symmetric start/end padding instead. -->
-    <style name="Widget.Llama.IconOnlyChip" parent="Widget.MaterialComponents.Chip.Action">
+    <style name="Widget.KyPost.IconOnlyChip" parent="Widget.MaterialComponents.Chip.Action">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="chipIconSize">18dp</item>

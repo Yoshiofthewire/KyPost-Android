@@ -112,28 +112,28 @@
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/composeBold"
-                    style="@style/Widget.Llama.IconOnlyChip"
+                    style="@style/Widget.KyPost.IconOnlyChip"
                     android:checkable="true"
                     app:chipIcon="@drawable/ic_bold"
                     android:contentDescription="@string/compose_format_bold" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/composeItalic"
-                    style="@style/Widget.Llama.IconOnlyChip"
+                    style="@style/Widget.KyPost.IconOnlyChip"
                     android:checkable="true"
                     app:chipIcon="@drawable/ic_italic"
                     android:contentDescription="@string/compose_format_italic" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/composeUnderline"
-                    style="@style/Widget.Llama.IconOnlyChip"
+                    style="@style/Widget.KyPost.IconOnlyChip"
                     android:checkable="true"
                     app:chipIcon="@drawable/ic_underline"
                     android:contentDescription="@string/compose_format_underline" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/composeLink"
-                    style="@style/Widget.Llama.IconOnlyChip"
+                    style="@style/Widget.KyPost.IconOnlyChip"
                     android:checkable="true"
                     app:chipIcon="@drawable/ic_link"
                     android:contentDescription="@string/compose_format_link" />
