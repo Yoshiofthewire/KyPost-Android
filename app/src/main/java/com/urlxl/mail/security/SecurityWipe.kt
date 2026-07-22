@@ -6,10 +6,12 @@ import com.urlxl.mail.push.SecurePairingStore
 
 /**
  * Full destructive reset: runs when [LockoutPolicy.WIPE_THRESHOLD] wrong PIN attempts
- * accumulate, and when the user explicitly turns "Require Unlock to Open" off (which also
- * clears the PIN, since a stale PIN with lock disabled would be confusing state). Closes and
- * deletes the Room database, clears pairing credentials (forcing re-pairing), and clears the
- * app-lock PIN/flags — the app ends up in exactly its first-run state.
+ * accumulate, and when disabling "Require Unlock to Open" needs to recover a credential-gate
+ * (Task 18) wrapped `deviceSecret` (see [SecuritySettingsActivity.promptDisableLock]; a plain
+ * lock-disable with no credential gate active uses the lighter [AppLockState.reset] path
+ * instead — see that method's doc comment for why). Closes and deletes the Room database,
+ * clears pairing credentials (forcing re-pairing), and clears the app-lock PIN/flags — the app
+ * ends up in exactly its first-run state.
  */
 object SecurityWipe {
     /**
@@ -25,9 +27,25 @@ object SecurityWipe {
      * `DataGraph` and will throw when its database is used.
      */
     suspend fun wipeAndResetApp(context: Context) {
-        DataRuntime.graph(context).database.close()
-        context.deleteDatabase("kypost_mail.db")
+        closeAndDeleteDatabase(context)
         SecurePairingStore(context).clearPairing()
         AppLockStore(context).reset()
+    }
+
+    /**
+     * Closes the current Room database instance and deletes `kypost_mail.db` (plus its
+     * `-wal`/`-shm` journal files) from disk — shared by [wipeAndResetApp] above and by Hostile
+     * Location Protection's toggle handler (see [SecuritySettingsActivity]'s
+     * `hostileLocationSwitch` listener and the 2026-07-22 security-hardening spec's "Toggling
+     * on"/"Toggling off" sections). Enabling the toggle must delete any on-disk cache written
+     * before protection was turned on ("nothing from before the toggle survives"); disabling it
+     * calls this too as a harmless safety net even though the in-memory database it's replacing
+     * never actually wrote to this file. Same caller contract as [wipeAndResetApp]: the caller
+     * MUST restart the process via `AppRestart.relaunch(context)` immediately afterward and
+     * MUST NOT touch `DataRuntime`/the database again in this process first.
+     */
+    suspend fun closeAndDeleteDatabase(context: Context) {
+        DataRuntime.graph(context).database.close()
+        context.deleteDatabase("kypost_mail.db")
     }
 }

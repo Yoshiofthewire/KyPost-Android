@@ -11,9 +11,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.Call
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -116,7 +116,11 @@ sealed class NativeRegistrationResult {
 
 class NativeRegistrationClient(
     private val json: Json = Json { ignoreUnknownKeys = true },
-    private val okHttpClient: OkHttpClient = pairingHttpClient(),
+    // Call.Factory (not the concrete OkHttpClient) so a pinned-or-fallback factory (see
+    // PushGraph, finding C2 of the 2026-07-22 security-hardening spec's final-review fix round)
+    // can be injected here the same way every other pairing client accepts one; OkHttpClient
+    // itself still satisfies this interface, so the default below is unchanged behavior.
+    private val callFactory: Call.Factory = pairingHttpClient(),
 ) {
     suspend fun register(
         pairing: PairingData,
@@ -143,7 +147,7 @@ class NativeRegistrationClient(
         val result = withContext(Dispatchers.IO) {
             // Captures the handshake alongside code/body (not just the mapped DTO) so a
             // successful call can seed the TOFU TLS pin — see the `tlsPin` computation below.
-            okHttpClient.executeSync(httpRequest) { response ->
+            callFactory.executeSync(httpRequest) { response ->
                 Triple(response.code, response.body?.string().orEmpty(), response.handshake)
             }
         }

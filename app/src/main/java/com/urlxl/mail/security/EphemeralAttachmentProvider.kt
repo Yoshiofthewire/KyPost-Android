@@ -12,7 +12,16 @@ import java.util.concurrent.ConcurrentHashMap
 
 private const val AUTHORITY_SUFFIX = ".ephemeralattachments"
 
-internal data class PendingAttachment(val bytes: ByteArray, val mimeType: String)
+// How long a registered-but-never-opened attachment's bytes may linger in the process heap — see
+// [EphemeralAttachmentBytes.purgeExpired]. Short: this is only meant to bridge "user tapped View"
+// to "the OS finished picking/launching a viewer app", not a general cache lifetime.
+private const val ATTACHMENT_TTL_MILLIS = 60_000L
+
+internal data class PendingAttachment(
+    val bytes: ByteArray,
+    val mimeType: String,
+    val registeredAtMillis: Long = System.currentTimeMillis(),
+)
 
 /**
  * In-memory holder for attachment bytes awaiting a single ephemeral read, keyed by a one-time
@@ -28,6 +37,7 @@ object EphemeralAttachmentBytes {
     }
 
     fun register(bytes: ByteArray, mimeType: String): Uri {
+        purgeExpired()
         val token = UUID.randomUUID().toString()
         pending[token] = PendingAttachment(bytes, mimeType)
         return Uri.parse("content://$authority/$token")
@@ -36,6 +46,20 @@ object EphemeralAttachmentBytes {
     internal fun take(token: String): PendingAttachment? = pending.remove(token)
 
     internal fun peekMimeType(token: String): String? = pending[token]?.mimeType
+
+    /**
+     * Bounds how long bytes for a never-opened attachment can sit in memory — if the user backs
+     * out before a viewer app actually opens the `content://` URI (or no app handles the MIME
+     * type), nothing else ever calls [take] to remove the entry. Checked lazily on every
+     * [register] call rather than via a scheduled background sweep — deliberately simple: the
+     * `pending` map is expected to hold at most a handful of entries at a time (one per
+     * in-flight "View" tap), so an O(n) scan here costs nothing and needs no extra
+     * threads/WorkManager.
+     */
+    private fun purgeExpired() {
+        val cutoff = System.currentTimeMillis() - ATTACHMENT_TTL_MILLIS
+        pending.entries.removeIf { it.value.registeredAtMillis < cutoff }
+    }
 }
 
 /**
@@ -61,7 +85,20 @@ class EphemeralAttachmentProvider : ContentProvider() {
         val readSide = pipe[0]
         val writeSide = pipe[1]
         Thread {
-            ParcelFileDescriptor.AutoCloseOutputStream(writeSide).use { it.write(attachment.bytes) }
+            try {
+                ParcelFileDescriptor.AutoCloseOutputStream(writeSide).use { it.write(attachment.bytes) }
+            } catch (e: Exception) {
+                // Expected/benign, not a bug: the viewer app can close its read side before this
+                // finishes writing (user backs out of the app chooser, the viewer only reads a
+                // MIME-sniffing prefix, etc.), which surfaces here as a broken-pipe IOException.
+                // A bare Thread has no default handler for an uncaught exception other than
+                // crashing the whole process, so this must be caught, not just left to propagate.
+                android.util.Log.w(
+                    "EphemeralAttachmentProvider",
+                    "Attachment write aborted (reader likely closed early)",
+                    e,
+                )
+            }
         }.start()
         return readSide
     }

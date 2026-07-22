@@ -26,6 +26,7 @@ import com.urlxl.mail.contacts.ContactsRuntime
 import com.urlxl.mail.contacts.toDto
 import com.urlxl.mail.data.DataRuntime
 import com.urlxl.mail.push.PushRuntime
+import com.urlxl.mail.push.pinnedPairingCallFactory
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import okhttp3.HttpUrl
@@ -57,7 +58,11 @@ class PgpKeyActivity : AppCompatActivity() {
     private lateinit var confirmButton: Button
     private lateinit var scanButton: Button
 
-    private val client = PgpQrClient()
+    // lazy: pinnedPairingCallFactory(this) needs a valid Context, which isn't available yet at
+    // property-initializer time (before attachBaseContext) — deferring to first use (both call
+    // sites are well after onCreate) avoids a NullPointerException here. See finding C2 of the
+    // 2026-07-22 security-hardening spec's final-review fix round.
+    private val client by lazy { PgpQrClient(callFactory = pinnedPairingCallFactory(this)) }
     private var pendingKey: PgpQrKeyDto? = null
 
     private val pickContactLauncher = registerForActivityResult(
