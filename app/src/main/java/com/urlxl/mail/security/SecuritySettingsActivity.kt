@@ -24,6 +24,8 @@ class SecuritySettingsActivity : AppCompatActivity() {
     private lateinit var appLockStore: AppLockStore
     private lateinit var lockSwitch: Switch
     private lateinit var biometricSwitch: Switch
+    private lateinit var hostileLocationSwitch: Switch
+    private lateinit var hostileLocationIntro: TextView
     private var suppressLockToggleListener = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,23 +61,22 @@ class SecuritySettingsActivity : AppCompatActivity() {
         container.addView(biometricSwitch)
 
         val hostileLocationSettings = HostileLocationSettings(this)
-        val hostileLocationSwitch = Switch(this).apply {
+        hostileLocationSwitch = Switch(this).apply {
             text = getString(R.string.security_hostile_location_title)
             isChecked = hostileLocationSettings.isEnabled()
             isEnabled = appLockStore.isLockEnabled()
         }
         container.addView(hostileLocationSwitch)
-        container.addView(
-            TextView(this).apply {
-                text = if (appLockStore.isLockEnabled()) {
-                    getString(R.string.security_hostile_location_intro)
-                } else {
-                    getString(R.string.security_hostile_location_requires_lock)
-                }
-                textSize = 13f
-                setPadding(0, 4, 0, 16)
-            },
-        )
+        hostileLocationIntro = TextView(this).apply {
+            text = if (appLockStore.isLockEnabled()) {
+                getString(R.string.security_hostile_location_intro)
+            } else {
+                getString(R.string.security_hostile_location_requires_lock)
+            }
+            textSize = 13f
+            setPadding(0, 4, 0, 16)
+        }
+        container.addView(hostileLocationIntro)
         hostileLocationSwitch.setOnCheckedChangeListener { _, checked ->
             hostileLocationSettings.setEnabled(checked)
             AppRestart.relaunch(this)
@@ -125,6 +126,8 @@ class SecuritySettingsActivity : AppCompatActivity() {
                     appLockStore.setPin(pin)
                     appLockStore.setLockEnabled(true)
                     biometricSwitch.isEnabled = true
+                    hostileLocationSwitch.isEnabled = true
+                    hostileLocationIntro.text = getString(R.string.security_hostile_location_intro)
                 } else {
                     revertLockSwitch(false)
                 }
