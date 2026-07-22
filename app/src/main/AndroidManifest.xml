@@ -133,6 +133,12 @@
                 android:resource="@xml/contact_authenticator" />
         </service>
 
+        <provider
+            android:name=".security.EphemeralAttachmentProvider"
+            android:authorities="${applicationId}.ephemeralattachments"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
     </application>
 
 </manifest>
