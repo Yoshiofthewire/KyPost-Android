@@ -1188,7 +1188,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 private const val AUTHORITY_SUFFIX = ".ephemeralattachments"
 
-private data class PendingAttachment(val bytes: ByteArray, val mimeType: String)
+internal data class PendingAttachment(val bytes: ByteArray, val mimeType: String)
 
 /**
  * In-memory holder for attachment bytes awaiting a single ephemeral read, keyed by a one-time
