@@ -12,6 +12,8 @@ import androidx.lifecycle.lifecycleScope
 import com.urlxl.mail.R
 import com.urlxl.mail.applyThemeToActivity
 import com.urlxl.mail.applyTopInsetWithHeader
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -235,24 +237,31 @@ class SecuritySettingsActivity : AppCompatActivity() {
 
     /** Re-saves the currently-paired credentials wrapped behind the just-derived key — without
      *  this, turning the gate on would only take effect for pairing data saved AFTER this point
-     *  (a future re-pair), leaving an existing pairing's deviceSecret unwrapped indefinitely. */
+     *  (a future re-pair), leaving an existing pairing's deviceSecret unwrapped indefinitely.
+     *  Delegates to the shared [rewrapPairingIfNeeded] (also used by [UnlockActivity] after a PIN
+     *  unlock) rather than duplicating its preconditions here. Uses a scope that isn't tied to
+     *  this Activity's lifecycle — see [unwrapCurrentPairing]'s doc comment for why. */
     private fun rewrapCurrentPairing() {
-        lifecycleScope.launch {
-            val securePairingStore = com.urlxl.mail.push.SecurePairingStore(this@SecuritySettingsActivity)
-            val currentPairing = securePairingStore.pairing.value ?: return@launch
-            val appLockManager = SecurityRuntime.graph(this@SecuritySettingsActivity).appLockManager
-            val credentialKey = appLockManager.cachedCredentialKey() ?: return@launch
-            val credentialSalt = appLockStore.credentialSalt() ?: return@launch
-            securePairingStore.savePairing(currentPairing, credentialKey, credentialSalt)
+        CoroutineScope(Dispatchers.IO).launch {
+            rewrapPairingIfNeeded(
+                this@SecuritySettingsActivity,
+                SecurityRuntime.graph(this@SecuritySettingsActivity).appLockManager,
+            )
         }
     }
 
     /** The inverse of [rewrapCurrentPairing] — without this, turning the gate back off would leave
      *  deviceSecret stored wrapped with no code path that ever unwraps it, permanently breaking
      *  authentication the next time the app locks (cachedCredentialKey() goes back to null once the
-     *  gate reports disabled, and resolveDeviceSecret has no other way to read the wrapped value). */
+     *  gate reports disabled, and resolveDeviceSecret has no other way to read the wrapped value).
+     *  Uses a scope that outlives this Activity rather than `lifecycleScope`: a quick back-press,
+     *  config change, or process death right after confirming the PIN would cancel a
+     *  lifecycleScope coroutine mid-write, and for this direction specifically that could leave
+     *  deviceSecret stuck wrapped with no unwrap path — the exact failure this task exists to
+     *  prevent. This is just a couple of fast, local-only SharedPreferences reads/writes, so a
+     *  short-lived, fire-and-forget IO scope is enough — no WorkManager needed. */
     private fun unwrapCurrentPairing() {
-        lifecycleScope.launch {
+        CoroutineScope(Dispatchers.IO).launch {
             val securePairingStore = com.urlxl.mail.push.SecurePairingStore(this@SecuritySettingsActivity)
             val appLockManager = SecurityRuntime.graph(this@SecuritySettingsActivity).appLockManager
             val credentialKey = appLockManager.cachedCredentialKey() ?: return@launch

@@ -82,6 +82,13 @@ class SecurePairingStore(context: Context) {
     fun currentCredentialSalt(): ByteArray? =
         prefs.getString(KEY_DEVICE_SECRET_SALT, null)?.let { Base64.decode(it, Base64.NO_WRAP) }
 
+    /** True if `deviceSecret` is currently stored wrapped behind a credential key (see
+     *  [savePairing]'s `credentialKey` param). Used by
+     *  [com.urlxl.mail.security.rewrapPairingIfNeeded] to detect a pairing that was saved
+     *  unwrapped — e.g. by a background FCM token rotation that ran before any PIN unlock this
+     *  session — and still needs re-wrapping. */
+    fun isDeviceSecretWrapped(): Boolean = prefs.contains(KEY_DEVICE_SECRET_CIPHERTEXT)
+
     suspend fun clearPairing() {
         withContext(Dispatchers.IO) {
             prefs.edit()

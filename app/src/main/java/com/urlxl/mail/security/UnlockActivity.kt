@@ -58,7 +58,19 @@ class UnlockActivity : AppCompatActivity() {
     private fun attemptUnlock() {
         val pin = pinField.text.toString()
         when (val result = appLockManager.attemptPin(pin)) {
-            is UnlockAttemptResult.Success -> finish()
+            is UnlockAttemptResult.Success -> {
+                // Closes the gap where a background FCM token rotation saved the pairing
+                // unwrapped because no credential key was cached yet in this process — see
+                // rewrapPairingIfNeeded's doc comment. finish() runs inside the same coroutine,
+                // after the rewrap, rather than concurrently with it: finish() begins tearing the
+                // activity down, which would cancel a still-running lifecycleScope coroutine
+                // launched alongside it. The rewrap itself is a couple of fast, local-only
+                // SharedPreferences reads/writes, so this doesn't visibly delay unlock.
+                lifecycleScope.launch {
+                    rewrapPairingIfNeeded(this@UnlockActivity, appLockManager)
+                    finish()
+                }
+            }
             is UnlockAttemptResult.Wiped -> restartToFirstRun()
             is UnlockAttemptResult.Rejected -> {
                 pinField.text.clear()
