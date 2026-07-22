@@ -59,6 +59,7 @@
     <string name="email_images_blocked_message">Images are blocked to protect your privacy.</string>
     <string name="email_show_images_button">Show images</string>
     <string name="attachment_downloading">Downloading %1$s…</string>
+    <string name="attachment_opening">Opening %1$s…</string>
     <string name="attachment_saved">Saved %1$s to Downloads</string>
     <string name="attachment_save_failed">Couldn\'t save %1$s</string>
     <string name="cancel">Cancel</string>
