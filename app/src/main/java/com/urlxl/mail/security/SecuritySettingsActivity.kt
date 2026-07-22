@@ -106,7 +106,10 @@ class SecuritySettingsActivity : AppCompatActivity() {
             .setView(pinField)
             .setPositiveButton(R.string.security_set_pin_confirm) { _, _ ->
                 if (appLockStore.verifyPin(pinField.text.toString())) {
-                    lifecycleScope.launch { SecurityWipe.wipeAndResetApp(this@SecuritySettingsActivity) }
+                    lifecycleScope.launch {
+                        SecurityWipe.wipeAndResetApp(this@SecuritySettingsActivity)
+                        AppRestart.relaunch(this@SecuritySettingsActivity)
+                    }
                 } else {
                     lockSwitch.isChecked = true
                 }
