@@ -111,10 +111,16 @@
             android:name=".push.MfaResponseReceiver"
             android:exported="false" />
 
+        <!-- taskAffinity="" keeps this in its own task, separate from MainActivity's. Without
+             it, tapping the notification after the app process has died resolves to the app's
+             existing (dead) task by affinity, which recreates MainActivity as the task root
+             instead of reliably launching this activity on top — landing the user on the inbox
+             instead of the approve/deny screen. -->
         <activity
             android:name=".push.MfaApprovalActivity"
             android:exported="false"
-            android:launchMode="singleTop" />
+            android:launchMode="singleTop"
+            android:taskAffinity="" />
 
         <service
             android:name=".contacts.device.KyPostContactAuthenticatorService"
