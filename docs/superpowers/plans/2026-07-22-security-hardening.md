@@ -913,7 +913,10 @@ object AppRestart {
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE,
         )
         val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.setExact(
+        // Non-exact set() deliberately, not setExact(): API 33+ requires SCHEDULE_EXACT_ALARM/
+        // USE_EXACT_ALARM for the exact variants (undeclared here, and unnecessary — this only
+        // needs "a few hundred ms" tolerance, not millisecond precision).
+        alarmManager.set(
             AlarmManager.ELAPSED_REALTIME,
             SystemClock.elapsedRealtime() + RESTART_DELAY_MILLIS,
             pendingIntent,
