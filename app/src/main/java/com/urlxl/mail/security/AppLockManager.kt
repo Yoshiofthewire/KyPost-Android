@@ -68,9 +68,26 @@ class AppLockManager(private val state: AppLockState, private val onWipe: () -> 
      *  the instant [lockNow] runs. See [com.urlxl.mail.push.SecurePairingStore]. */
     fun cachedCredentialKey(): SecretKeySpec? = credentialKey
 
+    /** Derives and caches the credential key on demand, regardless of whether the credential
+     *  gate is currently enabled — used when the user is toggling the gate itself (Task 21's
+     *  `SecuritySettingsActivity` flow), where there is no "successful unlock" event to hang off
+     *  of and no PIN-derived key can be assumed to already be cached (the current session may
+     *  have been unlocked via biometric only). Verifies [pin] against the stored hash first and
+     *  returns `false` without deriving anything if it's wrong — never derives a key from an
+     *  unverified PIN. */
+    fun deriveAndCacheCredentialKey(pin: String): Boolean {
+        if (!state.verifyPin(pin)) return false
+        credentialKey = deriveKeyUsingPersistedSalt(pin)
+        return true
+    }
+
     private fun cacheCredentialKeyIfEnabled(pin: String) {
         if (!state.isCredentialPinGateEnabled()) return
+        credentialKey = deriveKeyUsingPersistedSalt(pin)
+    }
+
+    private fun deriveKeyUsingPersistedSalt(pin: String): SecretKeySpec {
         val salt = state.credentialSalt() ?: CredentialCipher.randomSalt().also { state.setCredentialSalt(it) }
-        credentialKey = CredentialCipher.deriveKey(pin, salt)
+        return CredentialCipher.deriveKey(pin, salt)
     }
 }

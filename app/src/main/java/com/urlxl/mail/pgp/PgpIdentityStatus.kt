@@ -2,7 +2,6 @@ package com.urlxl.mail.pgp
 
 import android.content.Context
 import com.urlxl.mail.push.PushRuntime
-import kotlinx.coroutines.flow.first
 
 /** Maps a [PgpQrTokenResult] (from [PgpQrClient.mintToken]) to "does this account have a PGP
  *  identity" — `true`/`false` are definitive answers, `null` means the question couldn't be
@@ -33,7 +32,7 @@ internal fun pgpIdentityFromMintResult(result: PgpQrTokenResult): Boolean? = whe
  * so callers don't have to treat "couldn't check" the same as a confirmed "no identity".
  */
 suspend fun hasPgpIdentity(context: Context, client: PgpQrClient = PgpQrClient()): Boolean? {
-    val pairing = PushRuntime.graph(context).repository.state.first().pairing
+    val pairing = PushRuntime.graph(context).repository.pairingForAuthenticatedCall()
     val deviceId = pairing?.deviceId
     val deviceSecret = pairing?.deviceSecret
     if (pairing == null || deviceId.isNullOrBlank() || deviceSecret.isNullOrBlank()) return null

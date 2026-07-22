@@ -26,7 +26,9 @@ class SecuritySettingsActivity : AppCompatActivity() {
     private lateinit var biometricSwitch: Switch
     private lateinit var hostileLocationSwitch: Switch
     private lateinit var hostileLocationIntro: TextView
+    private lateinit var credentialGateSwitch: Switch
     private var suppressLockToggleListener = false
+    private var suppressCredentialGateListener = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,6 +84,24 @@ class SecuritySettingsActivity : AppCompatActivity() {
             AppRestart.relaunch(this)
         }
 
+        credentialGateSwitch = Switch(this).apply {
+            text = getString(R.string.security_credential_gate_title)
+            isChecked = appLockStore.isCredentialPinGateEnabled()
+            isEnabled = appLockStore.isLockEnabled()
+        }
+        container.addView(credentialGateSwitch)
+        container.addView(
+            TextView(this).apply {
+                text = getString(R.string.security_credential_gate_intro)
+                textSize = 13f
+                setPadding(0, 4, 0, 16)
+            },
+        )
+        credentialGateSwitch.setOnCheckedChangeListener { _, checked ->
+            if (suppressCredentialGateListener) return@setOnCheckedChangeListener
+            if (checked) confirmEnableCredentialGate() else confirmDisableCredentialGate()
+        }
+
         lockSwitch.setOnCheckedChangeListener { _, checked ->
             if (suppressLockToggleListener) return@setOnCheckedChangeListener
             onLockToggle(checked)
@@ -112,6 +132,17 @@ class SecuritySettingsActivity : AppCompatActivity() {
         suppressLockToggleListener = false
     }
 
+    /**
+     * Reverts [credentialGateSwitch] to [checked] without re-firing its listener — same
+     * re-entrancy hazard as [revertLockSwitch], guarded the same way. Used whenever we undo the
+     * user's toggle because the PIN prompt was cancelled or the PIN was wrong.
+     */
+    private fun revertCredentialGateSwitch(checked: Boolean) {
+        suppressCredentialGateListener = true
+        credentialGateSwitch.isChecked = checked
+        suppressCredentialGateListener = false
+    }
+
     private fun promptSetPin() {
         val pinField = android.widget.EditText(this).apply {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
@@ -128,6 +159,7 @@ class SecuritySettingsActivity : AppCompatActivity() {
                     biometricSwitch.isEnabled = true
                     hostileLocationSwitch.isEnabled = true
                     hostileLocationIntro.text = getString(R.string.security_hostile_location_intro)
+                    credentialGateSwitch.isEnabled = true
                 } else {
                     revertLockSwitch(false)
                 }
@@ -159,5 +191,73 @@ class SecuritySettingsActivity : AppCompatActivity() {
             .setNegativeButton(android.R.string.cancel) { _, _ -> revertLockSwitch(true) }
             .setCancelable(false)
             .show()
+    }
+
+    private fun confirmEnableCredentialGate() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.security_credential_gate_warning_title)
+            .setMessage(R.string.security_credential_gate_warning_body)
+            .setPositiveButton(R.string.security_credential_gate_warning_confirm) { _, _ -> promptCredentialGatePin(enabling = true) }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> revertCredentialGateSwitch(false) }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun confirmDisableCredentialGate() {
+        promptCredentialGatePin(enabling = false)
+    }
+
+    /** Both directions need the PIN re-entered here (not just "the app happens to be unlocked
+     *  right now") to guarantee a fresh PIN-derived key is available to actually re-wrap or
+     *  unwrap the current pairing's deviceSecret in the same step — see this task's correctness
+     *  note about why a confirm-only flow isn't sufficient. */
+    private fun promptCredentialGatePin(enabling: Boolean) {
+        val pinField = android.widget.EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            hint = getString(R.string.unlock_pin_hint)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.security_credential_gate_pin_title)
+            .setView(pinField)
+            .setPositiveButton(R.string.security_set_pin_confirm) { _, _ ->
+                val appLockManager = SecurityRuntime.graph(this).appLockManager
+                if (appLockManager.deriveAndCacheCredentialKey(pinField.text.toString())) {
+                    appLockStore.setCredentialPinGateEnabled(enabling)
+                    if (enabling) rewrapCurrentPairing() else unwrapCurrentPairing()
+                } else {
+                    revertCredentialGateSwitch(!enabling)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> revertCredentialGateSwitch(!enabling) }
+            .setCancelable(false)
+            .show()
+    }
+
+    /** Re-saves the currently-paired credentials wrapped behind the just-derived key — without
+     *  this, turning the gate on would only take effect for pairing data saved AFTER this point
+     *  (a future re-pair), leaving an existing pairing's deviceSecret unwrapped indefinitely. */
+    private fun rewrapCurrentPairing() {
+        lifecycleScope.launch {
+            val securePairingStore = com.urlxl.mail.push.SecurePairingStore(this@SecuritySettingsActivity)
+            val currentPairing = securePairingStore.pairing.value ?: return@launch
+            val appLockManager = SecurityRuntime.graph(this@SecuritySettingsActivity).appLockManager
+            val credentialKey = appLockManager.cachedCredentialKey() ?: return@launch
+            val credentialSalt = appLockStore.credentialSalt() ?: return@launch
+            securePairingStore.savePairing(currentPairing, credentialKey, credentialSalt)
+        }
+    }
+
+    /** The inverse of [rewrapCurrentPairing] — without this, turning the gate back off would leave
+     *  deviceSecret stored wrapped with no code path that ever unwraps it, permanently breaking
+     *  authentication the next time the app locks (cachedCredentialKey() goes back to null once the
+     *  gate reports disabled, and resolveDeviceSecret has no other way to read the wrapped value). */
+    private fun unwrapCurrentPairing() {
+        lifecycleScope.launch {
+            val securePairingStore = com.urlxl.mail.push.SecurePairingStore(this@SecuritySettingsActivity)
+            val appLockManager = SecurityRuntime.graph(this@SecuritySettingsActivity).appLockManager
+            val credentialKey = appLockManager.cachedCredentialKey() ?: return@launch
+            val currentPairing = securePairingStore.pairingSnapshot(credentialKey) ?: return@launch
+            securePairingStore.savePairing(currentPairing)
+        }
     }
 }

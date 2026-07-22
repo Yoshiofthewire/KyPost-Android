@@ -26,7 +26,6 @@ import com.urlxl.mail.contacts.ContactsRuntime
 import com.urlxl.mail.contacts.toDto
 import com.urlxl.mail.data.DataRuntime
 import com.urlxl.mail.push.PushRuntime
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import okhttp3.HttpUrl
@@ -108,7 +107,7 @@ class PgpKeyActivity : AppCompatActivity() {
         qrStatusText.text = getString(R.string.pgp_qr_my_code_loading)
 
         lifecycleScope.launch {
-            val pairing = PushRuntime.graph(this@PgpKeyActivity).repository.state.first().pairing
+            val pairing = PushRuntime.graph(this@PgpKeyActivity).repository.pairingForAuthenticatedCall()
             val deviceId = pairing?.deviceId
             val deviceSecret = pairing?.deviceSecret
             if (pairing == null || deviceId.isNullOrBlank() || deviceSecret.isNullOrBlank()) {
