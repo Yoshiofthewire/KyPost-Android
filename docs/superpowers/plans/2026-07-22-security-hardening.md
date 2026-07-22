@@ -2068,7 +2068,7 @@ git commit -m "android: add Hostile Location Protection toggle, gated on app loc
 - Test: `app/src/test/java/com/urlxl/mail/security/CredentialCipherTest.kt`
 
 **Interfaces:**
-- Produces: `data class WrappedSecret(val salt: ByteArray, val iv: ByteArray, val ciphertext: ByteArray)`, `object CredentialCipher { fun randomSalt(): ByteArray; fun deriveKey(pin: String, salt: ByteArray): SecretKeySpec; fun wrap(plaintext: String, key: SecretKeySpec): WrappedSecret; fun unwrap(wrapped: WrappedSecret, key: SecretKeySpec): String? }`. Consumed by `SecurePairingStore` (Task 19).
+- Produces: `data class WrappedSecret(val iv: ByteArray, val ciphertext: ByteArray)`, `object CredentialCipher { fun randomSalt(): ByteArray; fun deriveKey(pin: String, salt: ByteArray): SecretKeySpec; fun wrap(plaintext: String, key: SecretKeySpec): WrappedSecret; fun unwrap(wrapped: WrappedSecret, key: SecretKeySpec): String? }`. Consumed by `SecurePairingStore` (Task 19). Note: the PBKDF2 salt itself is deliberately *not* part of `WrappedSecret` — the salt is an input to `deriveKey`, owned and persisted by the caller (`SecurePairingStore` stores it once per pairing, independent of each wrap call), not an output of wrapping a single value.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -2134,16 +2134,17 @@ private const val SALT_LENGTH_BYTES = 16
 private const val GCM_IV_LENGTH_BYTES = 12
 private const val GCM_TAG_LENGTH_BITS = 128
 
-/** [salt] is the PBKDF2 salt the wrapping key was derived from — not secret, stored alongside
- *  [ciphertext] so the same key can be re-derived later from just the PIN. */
-data class WrappedSecret(val salt: ByteArray, val iv: ByteArray, val ciphertext: ByteArray)
+/** The PBKDF2 salt is deliberately not part of this type — it's an input to [CredentialCipher.deriveKey],
+ *  owned and persisted once per pairing by the caller ([com.urlxl.mail.push.SecurePairingStore]),
+ *  not an output of wrapping a single value. */
+data class WrappedSecret(val iv: ByteArray, val ciphertext: ByteArray)
 
 /**
  * PIN-derived AES-GCM wrapping for the pairing `deviceSecret` — see "Require unlock to receive
  * push/MFA" in the 2026-07-22 security-hardening spec. Deliberately independent of Android
  * Keystore: unlike [AppLockStore]'s Keystore-backed prefs, this key must be re-derivable from
- * just the PIN + [WrappedSecret.salt] on demand (whenever [AppLockManager] caches it after a
- * successful unlock), not tied to hardware key material.
+ * just the PIN + a stored salt on demand (whenever [AppLockManager] caches it after a successful
+ * unlock), not tied to hardware key material.
  */
 object CredentialCipher {
     fun randomSalt(): ByteArray = ByteArray(SALT_LENGTH_BYTES).also { SecureRandom().nextBytes(it) }
@@ -2159,7 +2160,7 @@ object CredentialCipher {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
         val ciphertext = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
-        return WrappedSecret(salt = ByteArray(0), iv = iv, ciphertext = ciphertext)
+        return WrappedSecret(iv = iv, ciphertext = ciphertext)
     }
 
     /** Null on a wrong key or corrupted/tampered ciphertext (GCM's auth tag fails to verify) —
@@ -2172,8 +2173,6 @@ object CredentialCipher {
     }.getOrNull()
 }
 ```
-
-Note: `wrap`'s returned `WrappedSecret.salt` is left empty since the salt is derived and owned by the caller (`deriveKey`'s input) — `SecurePairingStore` (Task 19) generates and stores the salt itself once, independent of each individual wrap call, and always passes the same salt back into `deriveKey` to reconstruct the key. Update the round-trip test above if this trips it up: it doesn't, since the test never reads `wrapped.salt`.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -2370,9 +2369,11 @@ private fun resolveDeviceSecret(credentialKey: SecretKeySpec?): String? {
     if (wrappedCiphertext == null) return prefs.getString(KEY_DEVICE_SECRET, null)
     val key = credentialKey ?: return null
     val iv = prefs.getString(KEY_DEVICE_SECRET_IV, null)?.let { Base64.decode(it, Base64.NO_WRAP) } ?: return null
-    val salt = prefs.getString(KEY_DEVICE_SECRET_SALT, null)?.let { Base64.decode(it, Base64.NO_WRAP) } ?: return null
     val ciphertext = Base64.decode(wrappedCiphertext, Base64.NO_WRAP)
-    return CredentialCipher.unwrap(WrappedSecret(salt, iv, ciphertext), key)
+    // The salt (KEY_DEVICE_SECRET_SALT) isn't read here — credentialKey has already been derived
+    // from it by the caller (see AppLockManager.cacheCredentialKeyIfEnabled, Task 20); it's
+    // exposed separately via currentCredentialSalt() for that derivation to happen at all.
+    return CredentialCipher.unwrap(WrappedSecret(iv, ciphertext), key)
 }
 ```
 
